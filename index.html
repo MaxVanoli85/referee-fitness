@@ -453,10 +453,13 @@ function demoCategoriseHRZones(acts) {
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 function getMonthKey(dateStr) {
+  if (!dateStr) return 'unknown';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'unknown';
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
 }
 function getMonthLabel(key) {
+  if (!key) return 'Unknown';
   const [y,m] = key.split('-');
   return new Date(+y, +m-1, 1).toLocaleDateString('en-GB', {month:'short', year:'numeric'});
 }
@@ -464,6 +467,7 @@ function activitiesForMonth(acts, key) {
   return acts.filter(a => a.start_date && getMonthKey(a.start_date) === key);
 }
 function weekNumber(dateStr) {
+  if (!dateStr) return 0;
   const d = new Date(dateStr);
   return Math.ceil(d.getDate() / 7);
 }
@@ -542,6 +546,7 @@ function selectMonth(key) {
 }
 
 function renderMonth() {
+  if (!STATE.selectedMonth) return;
   const acts = activitiesForMonth(STATE.activities, STATE.selectedMonth);
   const s    = computeMonthStats(acts);
   const lbl  = getMonthLabel(STATE.selectedMonth);
