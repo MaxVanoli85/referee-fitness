@@ -7,749 +7,863 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0e0f11;
-    --bg2: #16181c;
-    --bg3: #1e2128;
-    --border: rgba(255,255,255,0.07);
-    --border2: rgba(255,255,255,0.12);
-    --text: #f0f0ee;
-    --muted: #8a8a8a;
-    --faint: #444;
-    --orange: #fc4c02;
-    --orange-dim: rgba(252,76,2,0.15);
-    --orange-border: rgba(252,76,2,0.35);
-    --green: #22c97a;
-    --green-dim: rgba(34,201,122,0.12);
-    --amber: #f5a623;
-    --amber-dim: rgba(245,166,35,0.12);
-    --red: #f0544f;
-    --red-dim: rgba(240,84,79,0.12);
-    --blue: #4a9eff;
-    --blue-dim: rgba(74,158,255,0.12);
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+:root {
+  --bg:#0e0f11;--bg2:#16181c;--bg3:#1e2128;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#f0f0ee;--muted:#8a8a8a;--faint:#444;
+  --orange:#fc4c02;--orange-dim:rgba(252,76,2,0.13);--orange-border:rgba(252,76,2,0.35);
+  --green:#22c97a;--green-dim:rgba(34,201,122,0.12);
+  --amber:#f5a623;--amber-dim:rgba(245,166,35,0.12);
+  --red:#f0544f;--red-dim:rgba(240,84,79,0.12);
+  --blue:#4a9eff;--blue-dim:rgba(74,158,255,0.12);
+  --radius:10px;--radius-sm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
 
-  /* ── AUTH SCREEN ── */
-  #auth-screen {
-    min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 2rem;
-    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(252,76,2,0.12), transparent);
-  }
-  .auth-logo { font-size: 13px; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 2.5rem; text-transform: uppercase; }
-  .auth-title { font-size: clamp(28px, 5vw, 42px); font-weight: 300; color: var(--text); text-align: center; line-height: 1.2; margin-bottom: 0.75rem; }
-  .auth-title span { color: var(--orange); }
-  .auth-sub { font-size: 15px; color: var(--muted); text-align: center; max-width: 380px; line-height: 1.6; margin-bottom: 2.5rem; }
-  .strava-btn {
-    display: inline-flex; align-items: center; gap: 10px;
-    background: var(--orange); color: #fff; border: none;
-    padding: 13px 28px; border-radius: var(--radius); font-family: inherit;
-    font-size: 14px; font-weight: 500; cursor: pointer; letter-spacing: 0.01em;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-  .strava-btn:hover { opacity: 0.88; }
-  .strava-btn:active { transform: scale(0.98); }
-  .strava-btn svg { width: 20px; height: 20px; fill: white; flex-shrink: 0; }
-  .auth-note { font-size: 12px; color: var(--faint); margin-top: 1.5rem; text-align: center; max-width: 320px; line-height: 1.6; }
-  .auth-features { display: flex; gap: 2rem; margin-bottom: 2.5rem; flex-wrap: wrap; justify-content: center; }
-  .auth-feature { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
-  .auth-feature::before { content: ''; width: 6px; height: 6px; background: var(--orange); border-radius: 50%; flex-shrink: 0; }
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;flex-direction:column;}
+#dashboard.active,#coach-dashboard.active{display:block;min-height:100vh;}
 
-  /* ── LOADING ── */
-  #loading-screen { min-height: 100vh; display: none; flex-direction: column; align-items: center; justify-content: center; }
-  .spinner { width: 32px; height: 32px; border: 2px solid var(--border2); border-top-color: var(--orange); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 1rem; }
-  .loading-text { font-size: 13px; color: var(--muted); }
-  @keyframes spin { to { transform: rotate(360deg); } }
+/* ── AUTH / LANDING ── */
+#auth-screen{align-items:center;justify-content:center;padding:2rem;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(252,76,2,0.12),transparent);}
+.auth-logo{font-size:12px;letter-spacing:0.12em;color:var(--muted);margin-bottom:2.5rem;text-transform:uppercase;}
+.auth-title{font-size:clamp(26px,5vw,40px);font-weight:300;text-align:center;line-height:1.2;margin-bottom:0.6rem;}
+.auth-title span{color:var(--orange);}
+.auth-sub{font-size:14px;color:var(--muted);text-align:center;max-width:360px;line-height:1.6;margin-bottom:2rem;}
+.auth-btns{display:flex;flex-direction:column;gap:10px;align-items:center;width:100%;max-width:300px;}
+.btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--orange);color:#fff;border:none;padding:12px 24px;border-radius:var(--radius);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;width:100%;transition:opacity 0.15s;}
+.btn-primary:hover{opacity:0.85;}
+.btn-secondary{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:none;color:var(--muted);border:1px solid var(--border2);padding:11px 24px;border-radius:var(--radius);font-family:inherit;font-size:14px;cursor:pointer;width:100%;transition:all 0.15s;}
+.btn-secondary:hover{border-color:var(--orange-border);color:var(--text);}
+.strava-svg{width:18px;height:18px;fill:currentColor;flex-shrink:0;}
+.auth-note{font-size:11px;color:var(--faint);margin-top:1.5rem;text-align:center;max-width:300px;line-height:1.6;}
 
-  /* ── ERROR ── */
-  #error-screen { min-height: 100vh; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
-  .error-box { background: var(--red-dim); border: 1px solid var(--red); border-radius: var(--radius); padding: 1.5rem 2rem; max-width: 420px; text-align: center; }
-  .error-box h2 { color: var(--red); font-size: 16px; font-weight: 500; margin-bottom: 0.5rem; }
-  .error-box p { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 1rem; }
-  .error-box button { background: none; border: 1px solid var(--border2); color: var(--text); padding: 8px 20px; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 13px; }
+/* ── PIN SCREEN ── */
+#pin-screen{align-items:center;justify-content:center;padding:2rem;}
+.pin-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:320px;text-align:center;}
+.pin-box h2{font-size:16px;font-weight:500;margin-bottom:6px;}
+.pin-box p{font-size:13px;color:var(--muted);margin-bottom:1.5rem;}
+.pin-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:'DM Mono',monospace;font-size:22px;letter-spacing:0.3em;text-align:center;padding:12px;border-radius:var(--radius-sm);margin-bottom:12px;}
+.pin-input:focus{outline:none;border-color:var(--orange-border);}
+.pin-error{font-size:12px;color:var(--red);margin-top:6px;min-height:16px;}
+.back-link{font-size:12px;color:var(--muted);cursor:pointer;margin-top:1rem;display:inline-block;}
+.back-link:hover{color:var(--text);}
 
-  /* ── DASHBOARD ── */
-  #dashboard { display: none; }
-  .topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 0 2rem; height: 56px; border-bottom: 1px solid var(--border);
-    background: var(--bg); position: sticky; top: 0; z-index: 100;
-  }
-  .topbar-brand { font-size: 13px; letter-spacing: 0.08em; color: var(--muted); text-transform: uppercase; }
-  .topbar-right { display: flex; align-items: center; gap: 12px; }
-  .athlete-pill {
-    display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px;
-    border: 1px solid var(--border2); border-radius: 20px; background: var(--bg2);
-    font-size: 13px; cursor: default;
-  }
-  .athlete-avatar { width: 24px; height: 24px; border-radius: 50%; background: var(--orange-dim); border: 1px solid var(--orange-border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--orange); }
-  .disconnect-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 12px; transition: border-color 0.15s, color 0.15s; }
-  .disconnect-btn:hover { border-color: var(--border2); color: var(--text); }
+/* ── LOADING ── */
+#loading-screen{align-items:center;justify-content:center;}
+.spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--orange);border-radius:50%;animation:spin 0.7s linear infinite;margin-bottom:1rem;}
+.loading-text{font-size:13px;color:var(--muted);}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  .main { max-width: 960px; margin: 0 auto; padding: 2rem; }
+/* ── ERROR ── */
+#error-screen{align-items:center;justify-content:center;padding:2rem;}
+.error-box{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius);padding:1.5rem 2rem;max-width:400px;text-align:center;}
+.error-box h2{color:var(--red);font-size:15px;font-weight:500;margin-bottom:0.5rem;}
+.error-box p{color:var(--muted);font-size:13px;line-height:1.6;margin-bottom:1rem;}
 
-  .page-header { margin-bottom: 2rem; }
-  .page-header h1 { font-size: 22px; font-weight: 300; color: var(--text); margin-bottom: 4px; }
-  .page-header p { font-size: 13px; color: var(--muted); }
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;height:52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100;}
+.topbar-brand{font-size:12px;letter-spacing:0.08em;color:var(--muted);text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.topbar-pill{display:flex;align-items:center;gap:7px;padding:4px 12px 4px 5px;border:1px solid var(--border2);border-radius:20px;background:var(--bg2);font-size:12px;}
+.pill-dot{width:22px;height:22px;border-radius:50%;background:var(--orange-dim);border:1px solid var(--orange-border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:var(--orange);}
+.coach-dot{background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);}
+.btn-ghost{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;transition:all 0.15s;}
+.btn-ghost:hover{border-color:var(--border2);color:var(--text);}
 
-  .controls { display: flex; align-items: center; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap; }
-  .month-btn { background: none; border: 1px solid var(--border); color: var(--muted); padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 13px; transition: all 0.15s; }
-  .month-btn:hover, .month-btn.active { border-color: var(--orange-border); color: var(--text); background: var(--orange-dim); }
-  .sync-btn { margin-left: auto; background: none; border: 1px solid var(--border2); color: var(--muted); padding: 6px 14px; border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 12px; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
-  .sync-btn:hover { border-color: var(--orange-border); color: var(--orange); }
-  .sync-btn svg { width: 12px; height: 12px; }
+/* ── MAIN ── */
+.main{max-width:1020px;margin:0 auto;padding:1.5rem;}
+.page-header{margin-bottom:1.5rem;}
+.page-header h1{font-size:20px;font-weight:300;margin-bottom:3px;}
+.page-header p{font-size:12px;color:var(--muted);}
 
-  /* ── STAT CARDS ── */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; margin-bottom: 2rem; }
-  .stat-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
-  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
-  .stat-value { font-size: 28px; font-weight: 300; color: var(--text); line-height: 1; font-family: 'DM Mono', monospace; }
-  .stat-value.ok { color: var(--green); }
-  .stat-value.warn { color: var(--amber); }
-  .stat-value.danger { color: var(--red); }
-  .stat-sub { font-size: 11px; color: var(--faint); margin-top: 6px; }
+/* ── COACH: REFEREE GRID ── */
+.referee-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:1.5rem;}
+.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s;position:relative;}
+.ref-card:hover{border-color:var(--border2);background:var(--bg3);}
+.ref-card.selected{border-color:var(--orange-border);background:var(--orange-dim);}
+.ref-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ref-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;}
+.ref-name{font-size:14px;font-weight:500;color:var(--text);}
+.ref-status{font-size:11px;margin-top:2px;}
+.status-connected{color:var(--green);}
+.status-pending{color:var(--faint);}
+.ref-stats{display:flex;gap:12px;}
+.ref-stat{font-size:11px;color:var(--muted);}
+.ref-stat span{font-family:'DM Mono',monospace;color:var(--text);font-size:12px;}
+.ref-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--faint);cursor:pointer;font-size:14px;line-height:1;padding:2px 5px;border-radius:4px;}
+.ref-remove:hover{color:var(--red);background:var(--red-dim);}
+.add-ref-card{background:none;border:1px dashed var(--border2);border-radius:var(--radius);padding:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;font-family:inherit;transition:all 0.15s;}
+.add-ref-card:hover{border-color:var(--orange-border);color:var(--orange);}
 
-  /* ── TWO COL ── */
-  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
-  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; }
-  .panel-title { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1rem; }
+/* ── COACH: CONTROLS ── */
+.coach-controls{display:flex;align-items:center;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap;}
+.month-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:5px 13px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;transition:all 0.15s;}
+.month-btn:hover,.month-btn.active{border-color:var(--orange-border);color:var(--text);background:var(--orange-dim);}
+.sync-btn{margin-left:auto;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px 13px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;display:flex;align-items:center;gap:5px;transition:all 0.15s;}
+.sync-btn:hover{border-color:var(--orange-border);color:var(--orange);}
 
-  /* ── WORKOUT CATEGORIES ── */
-  .cat-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .cat-icon { font-size: 15px; width: 24px; text-align: center; flex-shrink: 0; }
-  .cat-name { font-size: 13px; color: var(--text); flex: 1; }
-  .cat-count { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; width: 28px; text-align: right; flex-shrink: 0; }
-  .cat-bar-wrap { flex: 1.5; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .cat-bar { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+/* ── DETAIL PANEL ── */
+.detail-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.5rem;}
+.detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.detail-title{font-size:15px;font-weight:500;}
+.detail-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.close-detail{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-family:inherit;}
+.close-detail:hover{border-color:var(--border2);color:var(--text);}
 
-  /* ── HR ZONES ── */
-  .zone-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-  .zone-lbl { font-size: 11px; color: var(--muted); width: 58px; flex-shrink: 0; font-family: 'DM Mono', monospace; }
-  .zone-bar-wrap { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
-  .zone-bar { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
-  .zone-pct { font-size: 11px; color: var(--muted); width: 30px; text-align: right; font-family: 'DM Mono', monospace; }
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
+.stat-card{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 14px;}
+.stat-label{font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:300;font-family:'DM Mono',monospace;line-height:1;}
+.stat-value.ok{color:var(--green);}
+.stat-value.warn{color:var(--amber);}
+.stat-value.danger{color:var(--red);}
+.stat-sub{font-size:10px;color:var(--faint);margin-top:4px;}
 
-  /* ── WEEKLY LOAD ── */
-  .load-chart { display: flex; align-items: flex-end; gap: 6px; height: 72px; margin-top: 1rem; }
-  .load-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-  .load-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--orange); opacity: 0.5; min-height: 3px; transition: height 0.5s ease; }
-  .load-lbl { font-size: 10px; color: var(--faint); font-family: 'DM Mono', monospace; }
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;}
+.panel{background:var(--bg3);border-radius:var(--radius-sm);padding:1rem;}
+.panel-title{font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;}
 
-  /* ── RECOVERY ── */
-  .rec-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); }
-  .rec-row:last-child { border-bottom: none; }
-  .rec-label { font-size: 13px; color: var(--muted); }
-  .badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
-  .badge-ok { background: var(--green-dim); color: var(--green); }
-  .badge-warn { background: var(--amber-dim); color: var(--amber); }
-  .badge-danger { background: var(--red-dim); color: var(--red); }
-  .rec-tip { font-size: 12px; color: var(--faint); margin-top: 0.75rem; padding: 8px 10px; background: var(--bg3); border-radius: var(--radius-sm); line-height: 1.5; }
+/* ── WORKOUT CATEGORIES ── */
+.cat-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.cat-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0;}
+.cat-name{font-size:12px;color:var(--text);flex:1;}
+.cat-count{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:24px;text-align:right;flex-shrink:0;}
+.cat-bar-wrap{flex:1.5;height:3px;background:var(--bg2);border-radius:2px;overflow:hidden;}
+.cat-bar{height:100%;border-radius:2px;}
 
-  /* ── ACTIVITY FEED ── */
-  .act-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
-  .act-row:last-child { border-bottom: none; }
-  .act-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; background: var(--bg3); }
-  .act-name { font-size: 13px; color: var(--text); font-weight: 500; }
-  .act-meta { font-size: 11px; color: var(--faint); margin-top: 2px; }
-  .act-hr { font-size: 12px; color: var(--muted); text-align: right; font-family: 'DM Mono', monospace; }
-  .act-info { flex: 1; }
+/* ── HR ZONES ── */
+.zone-row{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.zone-lbl{font-size:10px;color:var(--muted);width:54px;flex-shrink:0;font-family:'DM Mono',monospace;}
+.zone-bar-wrap{flex:1;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;}
+.zone-bar{height:100%;border-radius:3px;}
+.zone-pct{font-size:10px;color:var(--muted);width:26px;text-align:right;font-family:'DM Mono',monospace;}
 
-  /* ── EMPTY / ERROR STATES ── */
-  .empty-state { padding: 2rem; text-align: center; color: var(--faint); font-size: 13px; line-height: 1.6; }
+/* ── LOAD CHART ── */
+.load-chart{display:flex;align-items:flex-end;gap:5px;height:60px;margin-top:10px;}
+.load-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;}
+.load-bar{width:100%;border-radius:2px 2px 0 0;background:var(--orange);min-height:2px;}
+.load-lbl{font-size:9px;color:var(--faint);font-family:'DM Mono',monospace;}
 
-  /* ── SETUP NOTICE ── */
-  .setup-notice { background: var(--amber-dim); border: 1px solid rgba(245,166,35,0.3); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1.5rem; font-size: 13px; line-height: 1.6; }
-  .setup-notice strong { color: var(--amber); }
-  .setup-notice code { font-family: 'DM Mono', monospace; font-size: 12px; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 3px; }
+/* ── RECOVERY ── */
+.rec-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);}
+.rec-row:last-child{border-bottom:none;}
+.rec-label{font-size:12px;color:var(--muted);}
+.badge{font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;}
+.badge-ok{background:var(--green-dim);color:var(--green);}
+.badge-warn{background:var(--amber-dim);color:var(--amber);}
+.badge-danger{background:var(--red-dim);color:var(--red);}
+.rec-tip{font-size:11px;color:var(--faint);margin-top:8px;padding:7px 10px;background:var(--bg2);border-radius:var(--radius-sm);line-height:1.5;}
 
-  @media (max-width: 640px) {
-    .stats-grid { grid-template-columns: 1fr 1fr; }
-    .two-col { grid-template-columns: 1fr; }
-    .main { padding: 1rem; }
-    .topbar { padding: 0 1rem; }
-  }
+/* ── ACTIVITY FEED ── */
+.act-row{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);}
+.act-row:last-child{border-bottom:none;}
+.act-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;background:var(--bg2);}
+.act-name{font-size:12px;font-weight:500;color:var(--text);}
+.act-meta{font-size:10px;color:var(--faint);margin-top:1px;}
+.act-info{flex:1;}
+.act-hr{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* ── INVITE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:200;padding:1rem;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;}
+.modal h3{font-size:15px;font-weight:500;margin-bottom:6px;}
+.modal p{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:1rem;}
+.modal-url{font-family:'DM Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);padding:8px 10px;border-radius:var(--radius-sm);word-break:break-all;color:var(--text);margin-bottom:1rem;}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;}
+.modal-btns button{padding:7px 16px;border-radius:var(--radius-sm);cursor:pointer;font-family:inherit;font-size:12px;border:1px solid var(--border2);background:none;color:var(--text);}
+.modal-btns button.primary{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+/* ── ADD REFEREE MODAL ── */
+.add-modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:1rem;}
+.add-modal-input:focus{outline:none;border-color:var(--orange-border);}
+
+.empty-state{padding:1.5rem;text-align:center;color:var(--faint);font-size:12px;line-height:1.6;}
+
+@media(max-width:640px){
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .two-col{grid-template-columns:1fr;}
+  .main{padding:1rem;}
+  .topbar{padding:0 1rem;}
+  .referee-grid{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════ AUTH SCREEN ══════════════════════════ -->
-<div id="auth-screen">
+<!-- ═══ SCREENS ═══════════════════════════════════════════════════════════ -->
+
+<div id="auth-screen" class="screen">
   <div class="auth-logo">Referee Fitness Monitor</div>
   <h1 class="auth-title">Track your referees.<br><span>Stay ahead of injury.</span></h1>
-  <p class="auth-sub">Connect your Strava account to unlock monthly summaries, workout categories, HR zones, and overtraining alerts.</p>
-  <div class="auth-features">
-    <div class="auth-feature">Monthly summaries</div>
-    <div class="auth-feature">HR zones</div>
-    <div class="auth-feature">Workout categories</div>
-    <div class="auth-feature">Overtraining risk</div>
+  <p class="auth-sub">Connect your Strava account as a referee, or log in as a coach to see your whole squad.</p>
+  <div class="auth-btns">
+    <button class="btn-primary" onclick="connectStravaReferee()">
+      <svg class="strava-svg" viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      Connect as referee
+    </button>
+    <button class="btn-secondary" onclick="showScreen('pin')">
+      Coach login →
+    </button>
   </div>
-  <button class="strava-btn" onclick="connectStrava()">
-    <svg viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-    Connect with Strava
-  </button>
-  <p class="auth-note">Your athletes each connect their own account. You only see data from referees who have authorised access. Read-only.</p>
+  <p class="auth-note">Referees connect their own Strava. Coaches use a PIN to view the squad dashboard.</p>
 </div>
 
-<!-- ═══════════════════════════════════ LOADING ═══════════════════════════════ -->
-<div id="loading-screen">
+<div id="pin-screen" class="screen">
+  <div class="pin-box">
+    <h2>Coach login</h2>
+    <p>Enter your coach PIN to access the squad dashboard.</p>
+    <input class="pin-input" type="password" inputmode="numeric" maxlength="6" id="pin-input"
+      placeholder="····" oninput="pinInput(this)" onkeydown="if(event.key==='Enter')submitPin()">
+    <div id="pin-error" class="pin-error"></div>
+    <button class="btn-primary" onclick="submitPin()" style="margin-top:8px">Login</button>
+    <div class="back-link" onclick="showScreen('auth')">← Back</div>
+  </div>
+</div>
+
+<div id="loading-screen" class="screen">
   <div class="spinner"></div>
-  <div class="loading-text" id="loading-text">Connecting to Strava…</div>
+  <div class="loading-text" id="loading-text">Loading…</div>
 </div>
 
-<!-- ═══════════════════════════════════ ERROR ════════════════════════════════ -->
-<div id="error-screen">
+<div id="error-screen" class="screen">
   <div class="error-box">
-    <h2>Connection error</h2>
-    <p id="error-msg">Something went wrong connecting to Strava. Please try again.</p>
-    <button onclick="showScreen('auth')">Try again</button>
+    <h2>Something went wrong</h2>
+    <p id="error-msg">An error occurred. Please try again.</p>
+    <button class="btn-ghost" onclick="showScreen('auth')">Back to start</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════ DASHBOARD ════════════════════════════ -->
-<div id="dashboard">
+<!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
+<div id="dashboard" class="screen">
   <div class="topbar">
     <div class="topbar-brand">Referee Fitness</div>
     <div class="topbar-right">
-      <div class="athlete-pill">
-        <div class="athlete-avatar" id="athlete-initials">--</div>
-        <span id="athlete-name">Loading…</span>
+      <div class="topbar-pill">
+        <div class="pill-dot" id="ref-initials">--</div>
+        <span id="ref-name">Loading…</span>
       </div>
-      <button class="disconnect-btn" onclick="disconnect()">Disconnect</button>
+      <button class="btn-ghost" onclick="disconnect()">Disconnect</button>
     </div>
   </div>
-
   <div class="main">
-    <!-- Setup notice shown until backend is configured -->
-    <div class="setup-notice" id="setup-notice" style="display:none">
-      <strong>⚠ Backend not configured yet.</strong> To use real Strava data, deploy the backend server and update <code>BACKEND_URL</code> at the top of this file. Until then, the dashboard shows demo data. See the setup guide for instructions.
-    </div>
-
     <div class="page-header">
-      <h1 id="page-title">Monthly overview</h1>
-      <p id="page-sub">Connecting…</p>
+      <h1 id="ref-page-title">My overview</h1>
+      <p id="ref-page-sub">Loading your activities…</p>
     </div>
-
-    <div class="controls" id="month-controls"></div>
-
-    <div class="stats-grid" id="stats-grid"></div>
-
+    <div class="coach-controls" id="ref-month-controls"></div>
+    <div class="stats-grid" id="ref-stats-grid"></div>
     <div class="two-col">
+      <div class="panel"><div class="panel-title">Workout categories</div><div id="ref-cat-list"></div></div>
       <div class="panel">
-        <div class="panel-title">Workout categories</div>
-        <div id="cat-list"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-title">Heart rate zones</div>
-        <div id="hr-zones"></div>
-        <div class="panel-title" style="margin-top:1.25rem">Weekly load (minutes)</div>
-        <div class="load-chart" id="load-chart"></div>
+        <div class="panel-title">Heart rate zones</div><div id="ref-hr-zones"></div>
+        <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
+        <div class="load-chart" id="ref-load-chart"></div>
       </div>
     </div>
-
     <div class="two-col">
-      <div class="panel">
-        <div class="panel-title">Recovery &amp; overtraining risk</div>
-        <div id="recovery-panel"></div>
+      <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="ref-recovery"></div></div>
+      <div class="panel"><div class="panel-title">Recent activities</div><div id="ref-feed"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
+<div id="coach-dashboard" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Referee Fitness — Coach</div>
+    <div class="topbar-right">
+      <div class="topbar-pill">
+        <div class="pill-dot coach-dot">CO</div>
+        <span>Coach view</span>
       </div>
-      <div class="panel">
-        <div class="panel-title">Recent activities</div>
-        <div id="activity-feed"></div>
+      <button class="btn-ghost" onclick="coachLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-header">
+      <h1>Squad overview</h1>
+      <p id="coach-sub">Loading…</p>
+    </div>
+
+    <div class="coach-controls" id="coach-month-controls"></div>
+
+    <div class="referee-grid" id="referee-grid"></div>
+
+    <div id="detail-section" style="display:none">
+      <div class="detail-panel">
+        <div class="detail-header">
+          <div>
+            <div class="detail-title" id="detail-name">—</div>
+            <div class="detail-sub" id="detail-sub">—</div>
+          </div>
+          <button class="close-detail" onclick="closeDetail()">✕ Close</button>
+        </div>
+        <div class="stats-grid" id="detail-stats"></div>
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Workout categories</div><div id="detail-cats"></div></div>
+          <div class="panel">
+            <div class="panel-title">Heart rate zones</div><div id="detail-zones"></div>
+            <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
+            <div class="load-chart" id="detail-load"></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="detail-recovery"></div></div>
+          <div class="panel"><div class="panel-title">Recent activities</div><div id="detail-feed"></div></div>
+        </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ INVITE MODAL ════════════════════════════════════════════════════ -->
+<div id="invite-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h3>Invite referee</h3>
+    <p>Share this link with <strong id="invite-name">the referee</strong>. They click it, connect their Strava, and their data will appear in your coach dashboard automatically.</p>
+    <div class="modal-url" id="invite-url">—</div>
+    <div class="modal-btns">
+      <button onclick="copyInviteLink()">Copy link</button>
+      <button class="primary" onclick="closeInviteModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD REFEREE MODAL ════════════════════════════════════════════════ -->
+<div id="add-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <h3>Add referee</h3>
+    <p>Enter the referee's first name. You can then invite them via a link.</p>
+    <input class="add-modal-input" type="text" id="add-name-input" placeholder="First name…"
+      onkeydown="if(event.key==='Enter')confirmAddReferee()">
+    <div id="add-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
+    <div class="modal-btns">
+      <button onclick="closeAddModal()">Cancel</button>
+      <button class="primary" onclick="confirmAddReferee()">Add referee</button>
     </div>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════════════
-//  CONFIGURATION  —  update these two values
-// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════════════
 const STRAVA_CLIENT_ID = '216504';
+const BACKEND_URL      = 'https://referee-fitness-backend.onrender.com';
+const APP_URL          = 'https://maxvanoli85.github.io/referee-fitness';
 
-// After you deploy the backend (Step 4 of the setup guide), paste its URL here.
-// Example: 'https://referee-fitness-backend.onrender.com'
-// Until then, the app runs in demo mode.
-const BACKEND_URL = 'https://referee-fitness-backend.onrender.com';   // ← FILL IN AFTER STEP 4
-
-// ═══════════════════════════════════════════════════════════════════════════
-
-const REDIRECT_URI  = window.location.href.split('?')[0].replace(/#.*$/, '');
-const SCOPE         = 'read,activity:read_all';
+// ═══════════════════════════════════════════════════════════════════════
+const REDIRECT_URI = window.location.href.split('?')[0].replace(/#.*$/,'');
 const CAT_MAP = {
-  Run:          { label: 'Run',        icon: '🏃', color: '#4a9eff' },
-  Ride:         { label: 'Cycling',    icon: '🚴', color: '#fc4c02' },
-  WeightTraining:{ label: 'Strength',  icon: '🏋️', color: '#7f77dd' },
-  Workout:      { label: 'Workout',    icon: '⚡', color: '#22c97a' },
-  Walk:         { label: 'Walk',       icon: '🚶', color: '#8a8a8a' },
-  Swim:         { label: 'Swim',       icon: '🏊', color: '#4a9eff' },
-  Soccer:       { label: 'Match day',  icon: '⚽', color: '#22c97a' },
-  Football:     { label: 'Match day',  icon: '⚽', color: '#22c97a' },
+  Run:           {label:'Run',          icon:'🏃',color:'#4a9eff'},
+  Ride:          {label:'Cycling',      icon:'🚴',color:'#fc4c02'},
+  WeightTraining:{label:'Strength',     icon:'🏋️',color:'#7f77dd'},
+  Workout:       {label:'Workout',      icon:'⚡',color:'#22c97a'},
+  Walk:          {label:'Walk',         icon:'🚶',color:'#8a8a8a'},
+  Swim:          {label:'Swim',         icon:'🏊',color:'#4a9eff'},
+  Soccer:        {label:'Match day',    icon:'⚽',color:'#22c97a'},
+  Football:      {label:'Match day',    icon:'⚽',color:'#22c97a'},
+  VirtualRide:   {label:'Virtual ride', icon:'🚴',color:'#fc4c02'},
+  Hike:          {label:'Hike',         icon:'🥾',color:'#f5a623'},
 };
-const DEFAULT_CAT = { label: 'Other', icon: '🎯', color: '#8a8a8a' };
+const DEF_CAT = {label:'Other',icon:'🎯',color:'#8a8a8a'};
+const AVATAR_COLORS = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
 
-let STATE = {
-  accessToken: null,
-  athlete: null,
-  activities: [],
-  selectedMonth: null,
-};
+let REF_STATE = {token:null,athlete:null,activities:[],selectedMonth:null};
+let COACH_STATE = {pin:null,referees:[],selectedMonth:null,selectedReferee:null};
 
-// ── Screen helpers ──────────────────────────────────────────────────────────
+// ── Screen manager ─────────────────────────────────────────────────────
 function showScreen(name) {
-  ['auth-screen','loading-screen','error-screen','dashboard'].forEach(id => {
-    document.getElementById(id).style.display = 'none';
-  });
-  const el = document.getElementById(
-    name === 'auth'     ? 'auth-screen'     :
-    name === 'loading'  ? 'loading-screen'  :
-    name === 'error'    ? 'error-screen'    : 'dashboard'
-  );
-  el.style.display = name === 'loading' ? 'flex' : (name === 'error' ? 'flex' : 'block');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const map = {auth:'auth-screen',pin:'pin-screen',loading:'loading-screen',error:'error-screen',dashboard:'dashboard',coach:'coach-dashboard'};
+  const el = document.getElementById(map[name] || name);
+  if (el) el.classList.add('active');
 }
 function setLoading(msg) { document.getElementById('loading-text').textContent = msg; showScreen('loading'); }
 function showError(msg)  { document.getElementById('error-msg').textContent = msg; showScreen('error'); }
 
-// ── OAuth ───────────────────────────────────────────────────────────────────
-function connectStrava() {
+// ── PIN ────────────────────────────────────────────────────────────────
+function pinInput(el) { document.getElementById('pin-error').textContent = ''; }
+async function submitPin() {
+  const pin = document.getElementById('pin-input').value.trim();
+  if (!pin) return;
+  setLoading('Verifying PIN…');
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin})
+    });
+    if (res.ok) {
+      COACH_STATE.pin = pin;
+      sessionStorage.setItem('coach_pin', pin);
+      await loadCoachDashboard();
+    } else {
+      showScreen('pin');
+      document.getElementById('pin-error').textContent = 'Wrong PIN. Try again.';
+      document.getElementById('pin-input').value = '';
+    }
+  } catch(e) { showError('Cannot reach server. Please try again.'); }
+}
+function coachLogout() {
+  sessionStorage.removeItem('coach_pin');
+  COACH_STATE = {pin:null,referees:[],selectedMonth:null,selectedReferee:null};
+  showScreen('auth');
+}
+
+// ── Strava OAuth ───────────────────────────────────────────────────────
+function connectStravaReferee() {
   const url = `https://www.strava.com/oauth/authorize`
-    + `?client_id=${STRAVA_CLIENT_ID}`
-    + `&response_type=code`
-    + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
-    + `&approval_prompt=auto`
-    + `&scope=${SCOPE}`;
+    +`?client_id=${STRAVA_CLIENT_ID}`
+    +`&response_type=code`
+    +`&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+    +`&approval_prompt=auto`
+    +`&scope=read,activity:read_all`;
   window.location.href = url;
 }
 
-async function exchangeCode(code) {
-  if (!BACKEND_URL) {
-    // No backend yet — return demo token flag
-    return { access_token: 'DEMO', athlete: null };
-  }
-  const res = await fetch(`${BACKEND_URL}/exchange`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
-  });
-  const json = await res.json().catch(() => null);
-  if (!res.ok || !json) throw new Error('Token exchange failed (status ' + res.status + '). Check your backend is running.');
+function connectStravaForReferee(refereeId, refereeName) {
+  const url = `https://www.strava.com/oauth/authorize`
+    +`?client_id=${STRAVA_CLIENT_ID}`
+    +`&response_type=code`
+    +`&redirect_uri=${encodeURIComponent(APP_URL + '?ref=' + refereeId)}`
+    +`&approval_prompt=auto`
+    +`&scope=read,activity:read_all`;
+  showInviteModal(refereeId, refereeName, url);
+}
+
+async function exchangeCode(code, refereeId) {
+  const json = await fetch(`${BACKEND_URL}/exchange`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({code, refereeId: refereeId||null})
+  }).then(r=>r.json().catch(()=>null));
+  if (!json || !json.access_token) throw new Error('Token exchange failed: '+ JSON.stringify(json));
   return json;
 }
 
-async function refreshToken(refresh_token) {
-  if (!BACKEND_URL) return null;
-  const res = await fetch(`${BACKEND_URL}/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token })
-  });
-  if (!res.ok) return null;
-  return res.json();
+async function fetchAthleteAPI(token) {
+  const r = await fetch('https://www.strava.com/api/v3/athlete',{headers:{Authorization:`Bearer ${token}`}});
+  if (!r.ok) throw new Error('Could not fetch athlete');
+  return r.json();
 }
 
-// ── Strava API ──────────────────────────────────────────────────────────────
-async function fetchAthlete(token) {
-  const res = await fetch('https://www.strava.com/api/v3/athlete', {
-    headers: { Authorization: `Bearer ${token}` }
-  });
-  if (!res.ok) throw new Error('Could not fetch athlete profile.');
-  return res.json();
-}
-
-async function fetchActivities(token, after, before) {
-  let all = [], page = 1;
-  while (true) {
-    const res = await fetch(
-      `https://www.strava.com/api/v3/athlete/activities?after=${after}&before=${before}&per_page=100&page=${page}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) throw new Error('Could not fetch activities.');
-    const data = await res.json();
-    if (!data.length) break;
-    all = all.concat(data);
-    if (data.length < 100) break;
+async function fetchActivitiesAPI(token) {
+  const now   = Math.floor(Date.now()/1000);
+  const after = now - 60*60*24*180;
+  let all=[],page=1;
+  while(true){
+    const r = await fetch(`https://www.strava.com/api/v3/athlete/activities?after=${after}&before=${now}&per_page=100&page=${page}`,
+      {headers:{Authorization:`Bearer ${token}`}});
+    if(!r.ok) throw new Error('Could not fetch activities');
+    const d = await r.json();
+    if(!d.length) break;
+    all=all.concat(d);
+    if(d.length<100) break;
     page++;
   }
   return all;
 }
 
-// ── Storage ─────────────────────────────────────────────────────────────────
-function saveSession(token, refreshTok, athlete) {
-  try {
-    sessionStorage.setItem('rfm_token',   token);
-    sessionStorage.setItem('rfm_refresh', refreshTok || '');
-    sessionStorage.setItem('rfm_athlete', JSON.stringify(athlete));
-  } catch(e) {}
-}
-function loadSession() {
-  try {
-    const token   = sessionStorage.getItem('rfm_token');
-    const refresh = sessionStorage.getItem('rfm_refresh');
-    const athlete = JSON.parse(sessionStorage.getItem('rfm_athlete') || 'null');
-    return { token, refresh, athlete };
-  } catch(e) { return {}; }
-}
-function clearSession() {
-  try { sessionStorage.clear(); } catch(e) {}
-}
-function disconnect() {
-  clearSession();
-  STATE = { accessToken: null, athlete: null, activities: [], selectedMonth: null };
-  showScreen('auth');
-}
-
-// ── Demo data ────────────────────────────────────────────────────────────────
-function generateDemoActivities(monthsBack = 3) {
-  const acts = [];
-  const types = ['Run','Run','Run','Ride','WeightTraining','Soccer','Workout','Walk'];
-  const now = new Date();
-  for (let m = 0; m < monthsBack; m++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
-    const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-    const count = 14 + Math.floor(Math.random()*8);
-    for (let i = 0; i < count; i++) {
-      const day  = 1 + Math.floor(Math.random() * daysInMonth);
-      const type = types[Math.floor(Math.random()*types.length)];
-      const dur  = type === 'Soccer' ? 5400 + Math.random()*1800
-                 : type === 'WeightTraining' ? 2400 + Math.random()*1800
-                 : 1800 + Math.random()*3600;
-      const dist = ['Run','Ride','Walk'].includes(type) ? (3000 + Math.random()*15000) : 0;
-      const hr   = 120 + Math.floor(Math.random()*60);
-      const hrMax= hr + 10 + Math.floor(Math.random()*30);
-      const dt   = new Date(d.getFullYear(), d.getMonth(), day, 7+Math.floor(Math.random()*12));
-      acts.push({
-        id: Math.random().toString(36).slice(2),
-        name: type === 'Soccer' ? 'Match day' : type === 'Run' ? 'Morning run' : type,
-        type, sport_type: type,
-        start_date: dt.toISOString(),
-        elapsed_time: Math.round(dur),
-        moving_time:  Math.round(dur * 0.95),
-        distance: Math.round(dist),
-        average_heartrate: hr,
-        max_heartrate: hrMax,
-      });
-    }
-  }
-  return acts;
-}
-
-function demoCategoriseHRZones(acts) {
-  // Approximate zone splits based on avg HR
-  let z = [0,0,0,0,0];
-  acts.forEach(a => {
-    if (!a.average_heartrate) return;
-    const p = a.moving_time || a.elapsed_time || 0;
-    const hr = a.average_heartrate;
-    if      (hr < 115) z[0] += p;
-    else if (hr < 138) z[1] += p;
-    else if (hr < 155) z[2] += p;
-    else if (hr < 170) z[3] += p;
-    else               z[4] += p;
-  });
-  const total = z.reduce((a,b)=>a+b,0) || 1;
-  return z.map(v => Math.round(v/total*100));
-}
-
-// ── Analytics ────────────────────────────────────────────────────────────────
-function getMonthKey(dateStr) {
-  if (!dateStr) return 'unknown';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return 'unknown';
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+// ── Analytics ──────────────────────────────────────────────────────────
+function getMonthKey(d) {
+  if(!d) return 'unknown';
+  const dt = new Date(d);
+  if(isNaN(dt.getTime())) return 'unknown';
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
 }
 function getMonthLabel(key) {
-  if (!key) return 'Unknown';
+  if(!key||key==='unknown') return '—';
   const [y,m] = key.split('-');
-  return new Date(+y, +m-1, 1).toLocaleDateString('en-GB', {month:'short', year:'numeric'});
+  return new Date(+y,+m-1,1).toLocaleDateString('en-GB',{month:'short',year:'numeric'});
 }
-function activitiesForMonth(acts, key) {
-  return acts.filter(a => a.start_date && getMonthKey(a.start_date) === key);
-}
-function weekNumber(dateStr) {
-  if (!dateStr) return 0;
-  const d = new Date(dateStr);
-  return Math.ceil(d.getDate() / 7);
-}
+function weekNum(d) { if(!d) return 0; return Math.min(Math.ceil(new Date(d).getDate()/7)-1,3); }
 
-function computeMonthStats(acts) {
+function computeStats(acts) {
   const totalSessions = acts.length;
-  const totalMins = Math.round(acts.reduce((s,a) => s + (a.moving_time||a.elapsed_time||0), 0) / 60);
-
-  // Weekly loads
-  const weeks = [0,0,0,0,0];
-  acts.forEach(a => {
-    const w = Math.min(weekNumber(a.start_date)-1, 4);
-    weeks[w] += Math.round((a.moving_time||a.elapsed_time||0)/60);
-  });
-  const acuteLoad   = weeks[weeks.length-1] + (weeks[weeks.length-2]||0);
-  const chronicLoad = Math.round(weeks.reduce((a,b)=>a+b,0) / 4);
-  const ratio       = chronicLoad ? +(acuteLoad / chronicLoad).toFixed(2) : 0;
-
-  // Categories
-  const catMap = {};
-  acts.forEach(a => {
-    const c = CAT_MAP[a.type] || CAT_MAP[a.sport_type] || DEFAULT_CAT;
-    if (!catMap[c.label]) catMap[c.label] = { ...c, count: 0, mins: 0 };
+  const totalMins = Math.round(acts.reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
+  const weeks=[0,0,0,0];
+  acts.forEach(a=>{ weeks[weekNum(a.start_date)]+= Math.round((a.moving_time||a.elapsed_time||0)/60); });
+  const acuteLoad = weeks[3]+(weeks[2]||0);
+  const chronicLoad = Math.round(weeks.reduce((a,b)=>a+b,0)/4);
+  const ratio = chronicLoad ? +(acuteLoad/chronicLoad).toFixed(2) : 0;
+  const catMap={};
+  acts.forEach(a=>{
+    const c=CAT_MAP[a.type]||CAT_MAP[a.sport_type]||DEF_CAT;
+    if(!catMap[c.label]) catMap[c.label]={...c,count:0};
     catMap[c.label].count++;
-    catMap[c.label].mins += Math.round((a.moving_time||a.elapsed_time||0)/60);
   });
-  const categories = Object.values(catMap).sort((a,b)=>b.count-a.count);
-
-  // HR zones
-  const zones = demoCategoriseHRZones(acts);
-
-  // Recent (last 5)
-  const recent = [...acts]
-    .sort((a,b) => new Date(b.start_date) - new Date(a.start_date))
-    .slice(0,5);
-
-  return { totalSessions, totalMins, acuteLoad, chronicLoad, ratio, categories, zones, weeks, recent };
+  const categories=Object.values(catMap).sort((a,b)=>b.count-a.count);
+  const zones=approxZones(acts);
+  const recent=[...acts].filter(a=>a.start_date).sort((a,b)=>new Date(b.start_date)-new Date(a.start_date)).slice(0,5);
+  return {totalSessions,totalMins,acuteLoad,chronicLoad,ratio,categories,zones,weeks,recent};
 }
 
-// ── Render ───────────────────────────────────────────────────────────────────
-function renderDashboard() {
-  const athlete = STATE.athlete;
-  const initials = athlete
-    ? (athlete.firstname?.[0]||'') + (athlete.lastname?.[0]||'')
-    : 'U';
-  document.getElementById('athlete-initials').textContent = initials;
-  document.getElementById('athlete-name').textContent = athlete
-    ? `${athlete.firstname} ${athlete.lastname}`
-    : 'Demo athlete';
+function approxZones(acts) {
+  let z=[0,0,0,0,0];
+  acts.forEach(a=>{
+    if(!a.average_heartrate) return;
+    const p=a.moving_time||a.elapsed_time||0;
+    const hr=a.average_heartrate;
+    if(hr<115) z[0]+=p; else if(hr<138) z[1]+=p; else if(hr<155) z[2]+=p; else if(hr<170) z[3]+=p; else z[4]+=p;
+  });
+  const t=z.reduce((a,b)=>a+b,0)||1;
+  return z.map(v=>Math.round(v/t*100));
+}
 
-  // Available months
-  const keys = [...new Set(STATE.activities.filter(a => a.start_date).map(a => getMonthKey(a.start_date)))]
+function actsForMonth(acts,key) {
+  return acts.filter(a=>a&&a.start_date&&getMonthKey(a.start_date)===key&&key!=='unknown');
+}
+
+function availableMonths(acts) {
+  return [...new Set(acts.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'))]
     .sort().reverse().slice(0,6);
-
-  if (!keys.length) {
-    document.getElementById('page-title').textContent = 'No activities found';
-    document.getElementById('page-sub').textContent = 'No Strava activities in the last 6 months. Make sure your Strava account has activities synced.';
-    document.getElementById('month-controls').innerHTML = '';
-    document.getElementById('stats-grid').innerHTML = '<div class="empty-state" style="padding:2rem;color:var(--muted)">No activities to display. Sync some workouts on Strava first, then click Sync.</div>';
-    ['cat-list','hr-zones','load-chart','recovery-panel','activity-feed'].forEach(id => {
-      document.getElementById(id).innerHTML = '';
-    });
-    return;
-  }
-  if (!STATE.selectedMonth || !keys.includes(STATE.selectedMonth)) {
-    STATE.selectedMonth = keys[0];
-  }
-
-  // Month selector
-  const ctrl = document.getElementById('month-controls');
-  ctrl.innerHTML = keys.map(k => `
-    <button class="month-btn ${k===STATE.selectedMonth?'active':''}"
-      onclick="selectMonth('${k}')">${getMonthLabel(k)}</button>
-  `).join('') + `
-    <button class="sync-btn" onclick="resync()">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.1-3.45l-1.9 1.9V2h4.5l-1.85.35z"/></svg>
-      Sync
-    </button>`;
-
-  renderMonth();
 }
 
-function selectMonth(key) {
-  STATE.selectedMonth = key;
-  renderDashboard();
+// ── Render helpers ─────────────────────────────────────────────────────
+function renderStats(containerId, s) {
+  const rc = s.ratio>1.5?'danger':s.ratio>1.2?'warn':'ok';
+  const h=Math.floor(s.totalMins/60), m=s.totalMins%60;
+  document.getElementById(containerId).innerHTML=`
+    <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${s.totalSessions}</div><div class="stat-sub">this month</div></div>
+    <div class="stat-card"><div class="stat-label">Volume</div><div class="stat-value">${h}<span style="font-size:12px;color:var(--muted)">h</span>${m}<span style="font-size:12px;color:var(--muted)">m</span></div><div class="stat-sub">active time</div></div>
+    <div class="stat-card"><div class="stat-label">Acute load</div><div class="stat-value">${s.acuteLoad}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">vs ${s.chronicLoad}min chronic</div></div>
+    <div class="stat-card"><div class="stat-label">A:C ratio</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>`;
 }
 
-function renderMonth() {
-  if (!STATE.selectedMonth) return;
-  const acts = activitiesForMonth(STATE.activities, STATE.selectedMonth);
-  const s    = computeMonthStats(acts);
-  const lbl  = getMonthLabel(STATE.selectedMonth);
-
-  document.getElementById('page-title').textContent = `${lbl} overview`;
-  const athName = STATE.athlete ? (STATE.athlete.firstname + ' ' + STATE.athlete.lastname) : 'Demo athlete';
-  document.getElementById('page-sub').textContent = `${s.totalSessions} sessions · ${athName}`;
-
-  // Stats
-  const ratioClass = s.ratio > 1.5 ? 'danger' : s.ratio > 1.2 ? 'warn' : 'ok';
-  const h = Math.floor(s.totalMins/60), m = s.totalMins%60;
-  document.getElementById('stats-grid').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Sessions</div>
-      <div class="stat-value">${s.totalSessions}</div>
-      <div class="stat-sub">this month</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Volume</div>
-      <div class="stat-value">${h}<span style="font-size:14px;color:var(--muted)">h</span>${m}<span style="font-size:14px;color:var(--muted)">m</span></div>
-      <div class="stat-sub">active time</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Acute load</div>
-      <div class="stat-value">${s.acuteLoad}<span style="font-size:14px;color:var(--muted)">min</span></div>
-      <div class="stat-sub">vs ${s.chronicLoad}min chronic</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">A:C ratio</div>
-      <div class="stat-value ${ratioClass}">${s.ratio}</div>
-      <div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div>
-    </div>`;
-
-  // Categories
-  const maxCat = Math.max(...s.categories.map(c=>c.count), 1);
-  document.getElementById('cat-list').innerHTML = s.categories.length
-    ? s.categories.map(c => `
-        <div class="cat-row">
-          <span class="cat-icon">${c.icon}</span>
-          <span class="cat-name">${c.label}</span>
-          <span class="cat-count">${c.count}x</span>
-          <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(c.count/maxCat*100)}%;background:${c.color}"></div></div>
-        </div>`).join('')
+function renderCats(containerId, cats) {
+  const max=Math.max(...cats.map(c=>c.count),1);
+  document.getElementById(containerId).innerHTML = cats.length
+    ? cats.map(c=>`<div class="cat-row"><span class="cat-icon">${c.icon}</span><span class="cat-name">${c.label}</span><span class="cat-count">${c.count}x</span><div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(c.count/max*100)}%;background:${c.color}"></div></div></div>`).join('')
     : '<div class="empty-state">No activities this month.</div>';
+}
 
-  // HR zones
-  const zoneNames  = ['Z1 easy','Z2 aerobic','Z3 tempo','Z4 threshold','Z5 max'];
-  const zoneColors = ['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
-  document.getElementById('hr-zones').innerHTML = s.zones.map((z,i) => `
-    <div class="zone-row">
-      <span class="zone-lbl">${zoneNames[i]}</span>
-      <div class="zone-bar-wrap"><div class="zone-bar" style="width:${z}%;background:${zoneColors[i]}"></div></div>
-      <span class="zone-pct">${z}%</span>
-    </div>`).join('');
+function renderZones(containerId, zones) {
+  const names=['Z1 easy','Z2 aerobic','Z3 tempo','Z4 threshold','Z5 max'];
+  const colors=['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
+  document.getElementById(containerId).innerHTML = zones.map((z,i)=>`
+    <div class="zone-row"><span class="zone-lbl">${names[i]}</span>
+    <div class="zone-bar-wrap"><div class="zone-bar" style="width:${z}%;background:${colors[i]}"></div></div>
+    <span class="zone-pct">${z}%</span></div>`).join('');
+}
 
-  // Weekly load bars
-  const weeks = s.weeks.filter((_,i)=>i<4);
-  const maxW  = Math.max(...weeks, 1);
-  document.getElementById('load-chart').innerHTML = weeks.map((w,i) => `
-    <div class="load-col">
-      <div class="load-bar" style="height:${Math.round(w/maxW*60)}px;opacity:${0.4+i*0.15}"></div>
-      <span class="load-lbl">W${i+1}</span>
-    </div>`).join('');
+function renderLoad(containerId, weeks) {
+  const max=Math.max(...weeks,1);
+  document.getElementById(containerId).innerHTML = weeks.map((w,i)=>`
+    <div class="load-col"><div class="load-bar" style="height:${Math.round(w/max*52)}px;opacity:${0.4+i*0.18}"></div><span class="load-lbl">W${i+1}</span></div>`).join('');
+}
 
-  // Recovery
-  const rBadge   = s.ratio>1.5?'badge-danger':s.ratio>1.2?'badge-warn':'badge-ok';
-  const rLabel   = s.ratio>1.5?'High risk':s.ratio>1.2?'Moderate':'Low risk';
-  const monBadge = s.totalSessions < 8 ? 'badge-ok' : s.totalSessions > 20 ? 'badge-warn' : 'badge-ok';
-  const tip = s.ratio>1.5
-    ? 'Load has spiked this week. Recommend easy sessions only and at least one full rest day.'
-    : s.ratio>1.2
-    ? 'Load is slightly elevated. Keep this week lighter and monitor any fatigue signals.'
-    : 'Load is well balanced. Athlete is ready for normal training.';
-  document.getElementById('recovery-panel').innerHTML = `
-    <div class="rec-row"><span class="rec-label">Overtraining risk</span><span class="badge ${rBadge}">${rLabel}</span></div>
-    <div class="rec-row"><span class="rec-label">A:C ratio</span><span class="badge ${rBadge}">${s.ratio}</span></div>
-    <div class="rec-row"><span class="rec-label">Monthly sessions</span><span class="badge ${monBadge}">${s.totalSessions}</span></div>
-    <div class="rec-row"><span class="rec-label">Chronic load (avg)</span><span class="badge badge-ok">${s.chronicLoad} min/wk</span></div>
+function renderRecovery(containerId, s) {
+  const rb=s.ratio>1.5?'badge-danger':s.ratio>1.2?'badge-warn':'badge-ok';
+  const rl=s.ratio>1.5?'High risk':s.ratio>1.2?'Moderate':'Low risk';
+  const tip=s.ratio>1.5?'Load spiked. Recommend easy sessions and a rest day.'
+    :s.ratio>1.2?'Slightly elevated. Keep this week lighter.'
+    :'Load is balanced. Maintain current plan.';
+  document.getElementById(containerId).innerHTML=`
+    <div class="rec-row"><span class="rec-label">Overtraining risk</span><span class="badge ${rb}">${rl}</span></div>
+    <div class="rec-row"><span class="rec-label">A:C ratio</span><span class="badge ${rb}">${s.ratio}</span></div>
+    <div class="rec-row"><span class="rec-label">Sessions this month</span><span class="badge badge-ok">${s.totalSessions}</span></div>
+    <div class="rec-row"><span class="rec-label">Avg weekly load</span><span class="badge badge-ok">${s.chronicLoad} min</span></div>
     <div class="rec-tip">${tip}</div>`;
+}
 
-  // Activity feed
-  document.getElementById('activity-feed').innerHTML = s.recent.length
-    ? s.recent.map(a => {
-        const c   = CAT_MAP[a.type] || CAT_MAP[a.sport_type] || DEFAULT_CAT;
-        const dt  = new Date(a.start_date);
-        const day = dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-        const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
-        const dist= a.distance > 0 ? ` · ${(a.distance/1000).toFixed(1)}km` : '';
-        return `
-          <div class="act-row">
-            <div class="act-icon">${c.icon}</div>
-            <div class="act-info">
-              <div class="act-name">${a.name}</div>
-              <div class="act-meta">${day} · ${dur}min${dist}</div>
-            </div>
-            <div class="act-hr">${a.average_heartrate ? Math.round(a.average_heartrate)+' bpm' : '—'}</div>
-          </div>`;
+function renderFeed(containerId, recent) {
+  document.getElementById(containerId).innerHTML = recent.length
+    ? recent.map(a=>{
+        const c=CAT_MAP[a.type]||CAT_MAP[a.sport_type]||DEF_CAT;
+        const dt=new Date(a.start_date);
+        const day=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+        const dur=Math.round((a.moving_time||a.elapsed_time||0)/60);
+        const dist=a.distance>0?` · ${(a.distance/1000).toFixed(1)}km`:'';
+        return `<div class="act-row"><div class="act-icon">${c.icon}</div><div class="act-info"><div class="act-name">${a.name}</div><div class="act-meta">${day} · ${dur}min${dist}</div></div><div class="act-hr">${a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—'}</div></div>`;
       }).join('')
     : '<div class="empty-state">No recent activities.</div>';
 }
 
-async function resync() {
-  if (STATE.accessToken === 'DEMO') { renderDashboard(); return; }
-  try {
-    setLoading('Syncing activities…');
-    const now   = Math.floor(Date.now()/1000);
-    const after = now - 60*60*24*90; // last 90 days
-    STATE.activities = await fetchActivities(STATE.accessToken, after, now);
-    showScreen('dashboard');
-    renderDashboard();
-  } catch(e) {
-    showError(e.message);
-  }
+// ── Month selector ─────────────────────────────────────────────────────
+function renderMonthControls(containerId, months, selected, onSelect, onSync) {
+  document.getElementById(containerId).innerHTML = months.map(k=>`
+    <button class="month-btn ${k===selected?'active':''}" onclick="${onSelect}('${k}')">${getMonthLabel(k)}</button>`).join('')
+    +`<button class="sync-btn" onclick="${onSync}()"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.1-3.45l-1.9 1.9V2h4.5l-1.85.35z"/></svg>Sync</button>`;
 }
 
-// ── Boot ─────────────────────────────────────────────────────────────────────
+// ── REFEREE DASHBOARD ──────────────────────────────────────────────────
+function renderRefDashboard() {
+  const athlete = REF_STATE.athlete;
+  const initials = athlete?(athlete.firstname?.[0]||'')+(athlete.lastname?.[0]||''):'U';
+  document.getElementById('ref-initials').textContent = initials;
+  document.getElementById('ref-name').textContent = athlete?`${athlete.firstname} ${athlete.lastname}`:'Athlete';
+
+  const months = availableMonths(REF_STATE.activities);
+  if(!months.length){
+    document.getElementById('ref-page-title').textContent='No activities found';
+    document.getElementById('ref-page-sub').textContent='No Strava activities in the last 6 months.';
+    document.getElementById('ref-month-controls').innerHTML='';
+    document.getElementById('ref-stats-grid').innerHTML='<div class="empty-state">Sync some workouts on Strava first.</div>';
+    ['ref-cat-list','ref-hr-zones','ref-load-chart','ref-recovery','ref-feed'].forEach(id=>document.getElementById(id).innerHTML='');
+    return;
+  }
+  if(!REF_STATE.selectedMonth||!months.includes(REF_STATE.selectedMonth)) REF_STATE.selectedMonth=months[0];
+  renderMonthControls('ref-month-controls', months, REF_STATE.selectedMonth, 'selectRefMonth', 'resyncRef');
+  renderRefMonth();
+}
+
+function renderRefMonth() {
+  if(!REF_STATE.selectedMonth) return;
+  const acts = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
+  const s = computeStats(acts);
+  const name = REF_STATE.athlete?`${REF_STATE.athlete.firstname} ${REF_STATE.athlete.lastname}`:'Athlete';
+  document.getElementById('ref-page-title').textContent=`${getMonthLabel(REF_STATE.selectedMonth)} overview`;
+  document.getElementById('ref-page-sub').textContent=`${s.totalSessions} sessions · ${name}`;
+  renderStats('ref-stats-grid',s);
+  renderCats('ref-cat-list',s.categories);
+  renderZones('ref-hr-zones',s.zones);
+  renderLoad('ref-load-chart',s.weeks);
+  renderRecovery('ref-recovery',s);
+  renderFeed('ref-feed',s.recent);
+}
+
+function selectRefMonth(key) { REF_STATE.selectedMonth=key; renderRefDashboard(); }
+async function resyncRef() {
+  if(!REF_STATE.token) return;
+  setLoading('Syncing…');
+  try {
+    REF_STATE.activities = await fetchActivitiesAPI(REF_STATE.token);
+    showScreen('dashboard'); renderRefDashboard();
+  } catch(e) { showError(e.message); }
+}
+function disconnect() {
+  try{sessionStorage.clear();}catch(e){}
+  REF_STATE={token:null,athlete:null,activities:[],selectedMonth:null};
+  showScreen('auth');
+}
+
+// ── COACH DASHBOARD ────────────────────────────────────────────────────
+async function loadCoachDashboard() {
+  setLoading('Loading squad data…');
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/referees`,{headers:{'X-Coach-Pin':COACH_STATE.pin}});
+    if(!res.ok) throw new Error('Could not load referees');
+    const data = await res.json();
+    COACH_STATE.referees = data.referees || [];
+    const allActs = COACH_STATE.referees.flatMap(r=>r.activities||[]);
+    const months = availableMonths(allActs);
+    if(!COACH_STATE.selectedMonth||!months.includes(COACH_STATE.selectedMonth)) COACH_STATE.selectedMonth=months[0]||null;
+    showScreen('coach');
+    renderCoachDashboard();
+  } catch(e) { showError(e.message); }
+}
+
+function renderCoachDashboard() {
+  const connected = COACH_STATE.referees.filter(r=>r.connected).length;
+  const total = COACH_STATE.referees.length;
+  document.getElementById('coach-sub').textContent=`${connected} of ${total} referees connected`;
+
+  const allActs = COACH_STATE.referees.flatMap(r=>r.activities||[]);
+  const months = availableMonths(allActs);
+  if(months.length) {
+    renderMonthControls('coach-month-controls', months, COACH_STATE.selectedMonth, 'selectCoachMonth', 'syncAll');
+  } else {
+    document.getElementById('coach-month-controls').innerHTML=`<button class="sync-btn" onclick="syncAll()">Sync all</button>`;
+  }
+
+  renderRefereeGrid();
+}
+
+function renderRefereeGrid() {
+  const grid = document.getElementById('referee-grid');
+  const month = COACH_STATE.selectedMonth;
+
+  grid.innerHTML = COACH_STATE.referees.map((r,i)=>{
+    const acts = month ? actsForMonth(r.activities||[], month) : [];
+    const s = computeStats(acts);
+    const rc = s.ratio>1.5?'var(--red)':s.ratio>1.2?'var(--amber)':'var(--green)';
+    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+    const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    const syncAge = r.lastSync ? timeSince(r.lastSync) : 'never';
+    return `
+      <div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}" onclick="selectReferee('${r.id}')">
+        <button class="ref-remove" onclick="event.stopPropagation();removeReferee('${r.id}')" title="Remove">✕</button>
+        <div class="ref-card-top">
+          <div class="ref-avatar" style="background:${color}22;border:1px solid ${color}55;color:${color}">${initials}</div>
+          <div>
+            <div class="ref-name">${r.name}</div>
+            <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
+          </div>
+        </div>
+        <div class="ref-stats">
+          <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
+          <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
+          <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
+        </div>
+        ${!r.connected?`<button onclick="event.stopPropagation();showInviteForReferee('${r.id}','${r.name}')" style="margin-top:8px;width:100%;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px;border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-family:inherit">Invite →</button>`:''}
+      </div>`;
+  }).join('') + `<button class="add-ref-card" onclick="openAddModal()">+ Add referee</button>`;
+}
+
+function selectReferee(id) {
+  if(COACH_STATE.selectedReferee===id) { closeDetail(); return; }
+  COACH_STATE.selectedReferee=id;
+  renderRefereeGrid();
+  renderDetail();
+  document.getElementById('detail-section').style.display='block';
+  document.getElementById('detail-section').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function closeDetail() {
+  COACH_STATE.selectedReferee=null;
+  document.getElementById('detail-section').style.display='none';
+  renderRefereeGrid();
+}
+
+function renderDetail() {
+  const ref = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
+  if(!ref) return;
+  const month = COACH_STATE.selectedMonth;
+  const acts = month ? actsForMonth(ref.activities||[], month) : [];
+  const s = computeStats(acts);
+  document.getElementById('detail-name').textContent = ref.name;
+  document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
+  renderStats('detail-stats',s);
+  renderCats('detail-cats',s.categories);
+  renderZones('detail-zones',s.zones);
+  renderLoad('detail-load',s.weeks);
+  renderRecovery('detail-recovery',s);
+  renderFeed('detail-feed',s.recent);
+}
+
+function selectCoachMonth(key) {
+  COACH_STATE.selectedMonth=key;
+  renderCoachDashboard();
+  if(COACH_STATE.selectedReferee) renderDetail();
+}
+
+async function syncAll() {
+  setLoading('Syncing all referees…');
+  try {
+    await fetch(`${BACKEND_URL}/coach/sync`,{method:'POST',headers:{'X-Coach-Pin':COACH_STATE.pin}});
+    await new Promise(r=>setTimeout(r,3000)); // give server time to sync
+    await loadCoachDashboard();
+  } catch(e) { showError(e.message); }
+}
+
+// ── Add / Remove referee ───────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('add-name-input').value='';
+  document.getElementById('add-error').textContent='';
+  document.getElementById('add-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('add-name-input').focus(),100);
+}
+function closeAddModal() { document.getElementById('add-modal').style.display='none'; }
+
+async function confirmAddReferee() {
+  const name = document.getElementById('add-name-input').value.trim();
+  if(!name) { document.getElementById('add-error').textContent='Please enter a name.'; return; }
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/add-referee`,{
+      method:'POST', headers:{'Content-Type':'application/json','X-Coach-Pin':COACH_STATE.pin},
+      body:JSON.stringify({name})
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error||'Failed to add referee');
+    closeAddModal();
+    await loadCoachDashboard();
+  } catch(e) { document.getElementById('add-error').textContent=e.message; }
+}
+
+async function removeReferee(id) {
+  const ref = COACH_STATE.referees.find(r=>r.id===id);
+  if(!ref) return;
+  if(!confirm(`Remove ${ref.name} from the squad?`)) return;
+  try {
+    await fetch(`${BACKEND_URL}/coach/remove-referee`,{
+      method:'POST', headers:{'Content-Type':'application/json','X-Coach-Pin':COACH_STATE.pin},
+      body:JSON.stringify({id})
+    });
+    if(COACH_STATE.selectedReferee===id) closeDetail();
+    await loadCoachDashboard();
+  } catch(e) { alert('Could not remove referee: '+e.message); }
+}
+
+// ── Invite modal ───────────────────────────────────────────────────────
+function showInviteForReferee(id, name) {
+  const url = `${APP_URL}?ref=${id}`;
+  showInviteModal(id, name, url);
+}
+function showInviteModal(id, name, url) {
+  document.getElementById('invite-name').textContent = name;
+  document.getElementById('invite-url').textContent = url;
+  document.getElementById('invite-modal').style.display='flex';
+}
+function closeInviteModal() { document.getElementById('invite-modal').style.display='none'; }
+function copyInviteLink() {
+  const url = document.getElementById('invite-url').textContent;
+  navigator.clipboard.writeText(url).then(()=>{
+    const btn = document.querySelector('#invite-modal .modal-btns button:first-child');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy link',2000);
+  }).catch(()=>alert('Link: '+url));
+}
+
+// ── Util ───────────────────────────────────────────────────────────────
+function timeSince(iso) {
+  const s = Math.floor((Date.now()-new Date(iso).getTime())/1000);
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  if(s<86400) return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');
   const error  = params.get('error');
+  const refId  = params.get('ref'); // referee-specific invite link
 
-  // Clean URL
-  if (code || error) {
-    window.history.replaceState({}, '', window.location.pathname);
-  }
+  if(code||error||refId) window.history.replaceState({},'',window.location.pathname);
 
-  if (error) {
-    showScreen('auth');
-    return;
-  }
+  if(error) { showScreen('auth'); return; }
 
-  if (code) {
+  // Returning from Strava OAuth
+  if(code) {
     setLoading('Connecting to Strava…');
     try {
-      const data = await exchangeCode(code);
-
-      if (data.access_token === 'DEMO' || !BACKEND_URL) {
-        // Demo mode
-        document.getElementById('setup-notice').style.display = 'block';
-        STATE.accessToken = 'DEMO';
-        STATE.athlete = { firstname: 'Demo', lastname: 'Athlete', id: 0 };
-        STATE.activities = generateDemoActivities(3);
-        saveSession('DEMO', '', STATE.athlete);
-        showScreen('dashboard');
-        renderDashboard();
-        return;
-      }
-
-      if (!data || !data.access_token) throw new Error('Backend returned: ' + JSON.stringify(data));
-      STATE.accessToken = data.access_token;
-      setLoading('Loading athlete profile…');
-      STATE.athlete = data.athlete || await fetchAthlete(data.access_token);
-      saveSession(data.access_token, data.refresh_token || '', STATE.athlete);
-
-      setLoading('Fetching your activities… (this may take 10–20 seconds)');
-      const now   = Math.floor(Date.now()/1000);
-      const after = now - 60*60*24*180; // last 6 months
-      STATE.activities = await fetchActivities(STATE.accessToken, after, now);
-      if (!STATE.activities || STATE.activities.length === 0) {
-        setLoading('No activities found — showing empty dashboard');
-      }
+      const data = await exchangeCode(code, refId||null);
+      REF_STATE.token   = data.access_token;
+      REF_STATE.athlete = data.athlete || await fetchAthleteAPI(data.access_token);
+      try{sessionStorage.setItem('rfm_token', data.access_token); sessionStorage.setItem('rfm_athlete', JSON.stringify(REF_STATE.athlete));}catch(e){}
+      setLoading('Fetching your activities… (may take 10–20 seconds)');
+      REF_STATE.activities = await fetchActivitiesAPI(data.access_token);
       showScreen('dashboard');
-      renderDashboard();
-    } catch(e) {
-      showError(e.message);
-    }
+      renderRefDashboard();
+    } catch(e) { showError(e.message); }
     return;
   }
 
-  // Check existing session
-  const sess = loadSession();
-  if (sess.token && sess.athlete) {
-    if (sess.token === 'DEMO') {
-      document.getElementById('setup-notice').style.display = 'block';
-      STATE.accessToken = 'DEMO';
-      STATE.athlete = sess.athlete;
-      STATE.activities = generateDemoActivities(3);
-      showScreen('dashboard');
-      renderDashboard();
-      return;
-    }
+  // Check saved coach PIN
+  const savedPin = (() => { try { return sessionStorage.getItem('coach_pin'); } catch(e) { return null; } })();
+  if(savedPin) {
+    COACH_STATE.pin = savedPin;
+    await loadCoachDashboard();
+    return;
+  }
+
+  // Check saved referee token
+  const savedToken   = (() => { try { return sessionStorage.getItem('rfm_token'); } catch(e) { return null; } })();
+  const savedAthlete = (() => { try { return JSON.parse(sessionStorage.getItem('rfm_athlete')||'null'); } catch(e) { return null; } })();
+  if(savedToken && savedAthlete) {
     setLoading('Loading your data…');
     try {
-      STATE.accessToken = sess.token;
-      STATE.athlete     = sess.athlete;
-      setLoading('Fetching your activities… (this may take 10–20 seconds)');
-      const now   = Math.floor(Date.now()/1000);
-      const after = now - 60*60*24*180; // last 6 months
-      STATE.activities = await fetchActivities(STATE.accessToken, after, now);
+      REF_STATE.token   = savedToken;
+      REF_STATE.athlete = savedAthlete;
+      REF_STATE.activities = await fetchActivitiesAPI(savedToken);
       showScreen('dashboard');
-      renderDashboard();
+      renderRefDashboard();
     } catch(e) {
-      clearSession();
+      try{sessionStorage.clear();}catch(e2){}
       showScreen('auth');
     }
     return;
