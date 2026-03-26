@@ -689,6 +689,7 @@ async function boot() {
         return;
       }
 
+      if (!data.access_token) throw new Error('No access token returned. Please try connecting again.');
       STATE.accessToken = data.access_token;
       STATE.athlete = data.athlete || await fetchAthlete(data.access_token);
       saveSession(data.access_token, data.refresh_token || '', STATE.athlete);
@@ -696,7 +697,7 @@ async function boot() {
       setLoading('Fetching your activities…');
       const now   = Math.floor(Date.now()/1000);
       const after = now - 60*60*24*90;
-      STATE.activities = await fetchActivities(STATE.accessToken, now, after);
+      STATE.activities = await fetchActivities(STATE.accessToken, after, now);
       showScreen('dashboard');
       renderDashboard();
     } catch(e) {
@@ -723,7 +724,7 @@ async function boot() {
       STATE.athlete     = sess.athlete;
       const now   = Math.floor(Date.now()/1000);
       const after = now - 60*60*24*90;
-      STATE.activities = await fetchActivities(STATE.accessToken, now, after);
+      STATE.activities = await fetchActivities(STATE.accessToken, after, now);
       showScreen('dashboard');
       renderDashboard();
     } catch(e) {
