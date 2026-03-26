@@ -522,6 +522,16 @@ function renderDashboard() {
   const keys = [...new Set(STATE.activities.filter(a => a.start_date).map(a => getMonthKey(a.start_date)))]
     .sort().reverse().slice(0,6);
 
+  if (!keys.length) {
+    document.getElementById('page-title').textContent = 'No activities found';
+    document.getElementById('page-sub').textContent = 'No Strava activities in the last 6 months. Make sure your Strava account has activities synced.';
+    document.getElementById('month-controls').innerHTML = '';
+    document.getElementById('stats-grid').innerHTML = '<div class="empty-state" style="padding:2rem;color:var(--muted)">No activities to display. Sync some workouts on Strava first, then click Sync.</div>';
+    ['cat-list','hr-zones','load-chart','recovery-panel','activity-feed'].forEach(id => {
+      document.getElementById(id).innerHTML = '';
+    });
+    return;
+  }
   if (!STATE.selectedMonth || !keys.includes(STATE.selectedMonth)) {
     STATE.selectedMonth = keys[0];
   }
@@ -552,8 +562,8 @@ function renderMonth() {
   const lbl  = getMonthLabel(STATE.selectedMonth);
 
   document.getElementById('page-title').textContent = `${lbl} overview`;
-  document.getElementById('page-sub').textContent =
-    `${s.totalSessions} sessions · ${STATE.athlete ? STATE.athlete.firstname + ' ' + STATE.athlete.lastname : 'Demo athlete'}`;
+  const athName = STATE.athlete ? (STATE.athlete.firstname + ' ' + STATE.athlete.lastname) : 'Demo athlete';
+  document.getElementById('page-sub').textContent = `${s.totalSessions} sessions · ${athName}`;
 
   // Stats
   const ratioClass = s.ratio > 1.5 ? 'danger' : s.ratio > 1.2 ? 'warn' : 'ok';
@@ -697,13 +707,17 @@ async function boot() {
 
       if (!data || !data.access_token) throw new Error('Backend returned: ' + JSON.stringify(data));
       STATE.accessToken = data.access_token;
+      setLoading('Loading athlete profile…');
       STATE.athlete = data.athlete || await fetchAthlete(data.access_token);
       saveSession(data.access_token, data.refresh_token || '', STATE.athlete);
 
-      setLoading('Fetching your activities…');
+      setLoading('Fetching your activities… (this may take 10–20 seconds)');
       const now   = Math.floor(Date.now()/1000);
-      const after = now - 60*60*24*90;
+      const after = now - 60*60*24*180; // last 6 months
       STATE.activities = await fetchActivities(STATE.accessToken, after, now);
+      if (!STATE.activities || STATE.activities.length === 0) {
+        setLoading('No activities found — showing empty dashboard');
+      }
       showScreen('dashboard');
       renderDashboard();
     } catch(e) {
@@ -728,8 +742,9 @@ async function boot() {
     try {
       STATE.accessToken = sess.token;
       STATE.athlete     = sess.athlete;
+      setLoading('Fetching your activities… (this may take 10–20 seconds)');
       const now   = Math.floor(Date.now()/1000);
-      const after = now - 60*60*24*90;
+      const after = now - 60*60*24*180; // last 6 months
       STATE.activities = await fetchActivities(STATE.accessToken, after, now);
       showScreen('dashboard');
       renderDashboard();
