@@ -184,6 +184,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .add-modal-input:focus{outline:none;border-color:var(--orange-border);}
 
 .empty-state{padding:1.5rem;text-align:center;color:var(--faint);font-size:12px;line-height:1.6;}
+.cat-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.cat-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
+.cat-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.cat-override-row{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid var(--border);}
+.cat-override-row:last-child{border-bottom:none;}
+.cat-override-name{font-size:12px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cat-override-date{font-size:10px;color:var(--faint);width:52px;flex-shrink:0;}
+.cat-pill{font-size:10px;padding:2px 8px;border-radius:10px;cursor:pointer;border:1px solid transparent;transition:all 0.15s;white-space:nowrap;}
+.cat-pill:hover{opacity:0.8;}
+.cat-pill.active{font-weight:500;}
 
 @media(max-width:640px){
   .stats-grid{grid-template-columns:1fr 1fr;}
@@ -259,7 +269,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="coach-controls" id="ref-month-controls"></div>
     <div class="stats-grid" id="ref-stats-grid"></div>
     <div class="two-col">
-      <div class="panel"><div class="panel-title">Workout categories</div><div id="ref-cat-list"></div></div>
+      <div class="panel">
+        <div class="panel-title">Training categories</div>
+        <div class="cat-legend" id="ref-cat-legend"></div>
+        <div id="ref-cat-list"></div>
+        <div class="panel-title" style="margin-top:1rem">Override activity categories</div>
+        <div id="ref-override-list"></div>
+      </div>
       <div class="panel">
         <div class="panel-title">Heart rate zones</div><div id="ref-hr-zones"></div>
         <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
@@ -306,7 +322,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         </div>
         <div class="stats-grid" id="detail-stats"></div>
         <div class="two-col">
-          <div class="panel"><div class="panel-title">Workout categories</div><div id="detail-cats"></div></div>
+          <div class="panel">
+            <div class="panel-title">Training categories</div>
+            <div class="cat-legend" id="detail-cat-legend"></div>
+            <div id="detail-cats"></div>
+          </div>
           <div class="panel">
             <div class="panel-title">Heart rate zones</div><div id="detail-zones"></div>
             <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
@@ -360,19 +380,68 @@ const APP_URL          = 'https://maxvanoli85.github.io/referee-fitness';
 
 // ═══════════════════════════════════════════════════════════════════════
 const REDIRECT_URI = window.location.href.split('?')[0].replace(/#.*$/,'');
-const CAT_MAP = {
-  Run:           {label:'Run',          icon:'🏃',color:'#4a9eff'},
-  Ride:          {label:'Cycling',      icon:'🚴',color:'#fc4c02'},
-  WeightTraining:{label:'Strength',     icon:'🏋️',color:'#7f77dd'},
-  Workout:       {label:'Workout',      icon:'⚡',color:'#22c97a'},
-  Walk:          {label:'Walk',         icon:'🚶',color:'#8a8a8a'},
-  Swim:          {label:'Swim',         icon:'🏊',color:'#4a9eff'},
-  Soccer:        {label:'Match day',    icon:'⚽',color:'#22c97a'},
-  Football:      {label:'Match day',    icon:'⚽',color:'#22c97a'},
-  VirtualRide:   {label:'Virtual ride', icon:'🚴',color:'#fc4c02'},
-  Hike:          {label:'Hike',         icon:'🥾',color:'#f5a623'},
+// ── Training categories ────────────────────────────────────────────────
+const TRAIN_CATS = {
+  match:     { label:'Match day',     icon:'⚽', color:'#22c97a', short:'Match'    },
+  high:      { label:'High intensity',icon:'⚡', color:'#fc4c02', short:'High int' },
+  endurance: { label:'Endurance',     icon:'🏃', color:'#4a9eff', short:'Endurance'},
+  recovery:  { label:'Recovery',      icon:'🌀', color:'#7f77dd', short:'Recovery' },
+  strength:  { label:'Strength',      icon:'🏋️', color:'#f5a623', short:'Strength' },
+  other:     { label:'Other',         icon:'🎯', color:'#555',    short:'Other'    },
 };
-const DEF_CAT = {label:'Other',icon:'🎯',color:'#8a8a8a'};
+
+// Strava type → force category (overrides HR logic)
+const TYPE_FORCE = {
+  Soccer:'match', Football:'match', Rugby:'match',
+  WeightTraining:'strength', Crossfit:'strength',
+  Walk:'recovery', Yoga:'recovery', Pilates:'recovery',
+};
+
+// Auto-categorise a single activity by HR and pace
+function autoCategory(act) {
+  // 1. Force by Strava type
+  const forced = TYPE_FORCE[act.type] || TYPE_FORCE[act.sport_type];
+  if (forced) return forced;
+
+  const hr    = act.average_heartrate || 0;
+  const hrMax = act.max_heartrate     || 0;
+  const dur   = (act.moving_time || act.elapsed_time || 0) / 60; // minutes
+  const dist  = act.distance || 0; // metres
+  const pace  = dist > 0 && dur > 0 ? dur / (dist / 1000) : 99; // min/km
+
+  // 2. HR-based rules (most reliable)
+  if (hr > 0) {
+    if (hr >= 165 || hrMax >= 185)           return 'high';
+    if (hr >= 150)                            return 'high';
+    if (hr >= 138 && hr < 150)               return 'endurance';
+    if (hr >= 125 && hr < 138) {
+      // Long easy run vs recovery
+      return (dur >= 45 || dist >= 8000) ? 'endurance' : 'recovery';
+    }
+    if (hr < 125)                             return 'recovery';
+  }
+
+  // 3. Fallback: pace/duration
+  if (pace < 5.5 && dur >= 20)               return 'high';
+  if (pace < 7.0 && dur >= 40)               return 'endurance';
+  if (dur < 30)                              return 'recovery';
+
+  return 'endurance';
+}
+
+// Get effective category (manual override wins)
+function getCategory(act) {
+  const key = act._cat || autoCategory(act);
+  return { key, ...TRAIN_CATS[key] };
+}
+
+// Legacy CAT_MAP kept for any remaining references
+const CAT_MAP = {
+  Soccer:{label:'Match day',icon:'⚽',color:'#22c97a'},
+  Football:{label:'Match day',icon:'⚽',color:'#22c97a'},
+  WeightTraining:{label:'Strength',icon:'🏋️',color:'#f5a623'},
+};
+const DEF_CAT = TRAIN_CATS.other;
 const AVATAR_COLORS = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
 
 let REF_STATE = {token:null,athlete:null,activities:[],selectedMonth:null};
@@ -492,14 +561,20 @@ function computeStats(acts) {
   const ratio = chronicLoad ? +(acuteLoad/chronicLoad).toFixed(2) : 0;
   const catMap={};
   acts.forEach(a=>{
-    const c=CAT_MAP[a.type]||CAT_MAP[a.sport_type]||DEF_CAT;
-    if(!catMap[c.label]) catMap[c.label]={...c,count:0};
-    catMap[c.label].count++;
+    const c=getCategory(a);
+    if(!catMap[c.key]) catMap[c.key]={...c,count:0,mins:0};
+    catMap[c.key].count++;
+    catMap[c.key].mins+=Math.round((a.moving_time||a.elapsed_time||0)/60);
   });
   const categories=Object.values(catMap).sort((a,b)=>b.count-a.count);
+  // Category breakdown for bar (all 4 main cats always present)
+  const catBreakdown={};
+  ['match','high','endurance','recovery','strength'].forEach(k=>{
+    catBreakdown[k]=catMap[k]||{...TRAIN_CATS[k],count:0,mins:0};
+  });
   const zones=approxZones(acts);
   const recent=[...acts].filter(a=>a.start_date).sort((a,b)=>new Date(b.start_date)-new Date(a.start_date)).slice(0,5);
-  return {totalSessions,totalMins,acuteLoad,chronicLoad,ratio,categories,zones,weeks,recent};
+  return {totalSessions,totalMins,acuteLoad,chronicLoad,ratio,categories,catBreakdown,zones,weeks,recent};
 }
 
 function approxZones(acts) {
@@ -534,11 +609,23 @@ function renderStats(containerId, s) {
     <div class="stat-card"><div class="stat-label">A:C ratio</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>`;
 }
 
-function renderCats(containerId, cats) {
+function renderCats(containerId, cats, breakdown) {
   const max=Math.max(...cats.map(c=>c.count),1);
-  document.getElementById(containerId).innerHTML = cats.length
-    ? cats.map(c=>`<div class="cat-row"><span class="cat-icon">${c.icon}</span><span class="cat-name">${c.label}</span><span class="cat-count">${c.count}x</span><div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(c.count/max*100)}%;background:${c.color}"></div></div></div>`).join('')
-    : '<div class="empty-state">No activities this month.</div>';
+  const totalCount=cats.reduce((s,c)=>s+c.count,0)||1;
+  // Stacked breakdown bar
+  const barHtml = breakdown ? `<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:12px;gap:1px">
+    ${Object.values(breakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:3px" title="${c.label}: ${c.count}"></div>`).join('')}
+  </div>` : '';
+  document.getElementById(containerId).innerHTML = barHtml + (cats.length
+    ? cats.map(c=>`
+      <div class="cat-row">
+        <span class="cat-icon">${c.icon}</span>
+        <span class="cat-name">${c.label}</span>
+        <span class="cat-count">${c.count}x</span>
+        <div class="cat-bar-wrap"><div class="cat-bar" style="width:${Math.round(c.count/max*100)}%;background:${c.color}"></div></div>
+        <span style="font-size:10px;color:var(--faint);font-family:'DM Mono',monospace;width:28px;text-align:right">${Math.round(c.count/totalCount*100)}%</span>
+      </div>`).join('')
+    : '<div class="empty-state">No activities this month.</div>');
 }
 
 function renderZones(containerId, zones) {
@@ -568,6 +655,61 @@ function renderRecovery(containerId, s) {
     <div class="rec-row"><span class="rec-label">Sessions this month</span><span class="badge badge-ok">${s.totalSessions}</span></div>
     <div class="rec-row"><span class="rec-label">Avg weekly load</span><span class="badge badge-ok">${s.chronicLoad} min</span></div>
     <div class="rec-tip">${tip}</div>`;
+}
+
+function renderCatLegend(containerId, breakdown) {
+  if (!breakdown) return;
+  const active = Object.values(breakdown).filter(c=>c.count>0);
+  document.getElementById(containerId).innerHTML = active.map(c=>
+    `<div class="cat-legend-item"><div class="cat-legend-dot" style="background:${c.color}"></div>${c.label} <span style="color:var(--text);font-family:'DM Mono',monospace">${c.count}</span></div>`
+  ).join('');
+}
+
+function renderOverrideList(containerId, acts) {
+  // Show last 10 activities with category pill for override
+  const recent = [...acts].filter(a=>a&&a.start_date)
+    .sort((a,b)=>new Date(b.start_date)-new Date(a.start_date)).slice(0,10);
+  if (!recent.length) { document.getElementById(containerId).innerHTML='<div class="empty-state">No activities to show.</div>'; return; }
+  document.getElementById(containerId).innerHTML = recent.map(a=>{
+    const cur = getCategory(a);
+    const dt  = new Date(a.start_date);
+    const day = dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
+    const pills = Object.entries(TRAIN_CATS).filter(([k])=>k!=='other').map(([k,c])=>`
+      <span class="cat-pill ${cur.key===k?'active':''}"
+        style="background:${cur.key===k?c.color+'22':'var(--bg2)'};color:${cur.key===k?c.color:'var(--faint)'};border-color:${cur.key===k?c.color+'44':'transparent'}"
+        onclick="overrideCategory(this,'${a.id}','${k}')">${c.icon} ${c.short}</span>`).join('');
+    return `<div class="cat-override-row">
+      <span class="cat-override-date">${day} ${dur}m</span>
+      <span class="cat-override-name">${a.name}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">${pills}</div>
+    </div>`;
+  }).join('');
+}
+
+function overrideCategory(el, actId, catKey) {
+  // Find and update the activity in REF_STATE
+  const act = REF_STATE.activities.find(a=>String(a.id)===String(actId));
+  if (!act) return;
+  act._cat = catKey;
+  // Save overrides to sessionStorage
+  try {
+    const overrides = JSON.parse(sessionStorage.getItem('cat_overrides')||'{}');
+    overrides[actId] = catKey;
+    sessionStorage.setItem('cat_overrides', JSON.stringify(overrides));
+  } catch(e) {}
+  // Re-render the current month
+  renderRefMonth();
+  // Re-render just the override list to update pills
+  const monthActs = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
+  renderOverrideList('ref-override-list', monthActs);
+}
+
+function applyStoredOverrides(activities) {
+  try {
+    const overrides = JSON.parse(sessionStorage.getItem('cat_overrides')||'{}');
+    activities.forEach(a=>{ if(overrides[a.id]) a._cat=overrides[a.id]; });
+  } catch(e) {}
 }
 
 function renderFeed(containerId, recent) {
@@ -619,7 +761,10 @@ function renderRefMonth() {
   document.getElementById('ref-page-title').textContent=`${getMonthLabel(REF_STATE.selectedMonth)} overview`;
   document.getElementById('ref-page-sub').textContent=`${s.totalSessions} sessions · ${name}`;
   renderStats('ref-stats-grid',s);
-  renderCats('ref-cat-list',s.categories);
+  renderCatLegend('ref-cat-legend',s.catBreakdown);
+  renderCats('ref-cat-list',s.categories,s.catBreakdown);
+  const monthActsRef = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
+  renderOverrideList('ref-override-list', monthActsRef);
   renderZones('ref-hr-zones',s.zones);
   renderLoad('ref-load-chart',s.weeks);
   renderRecovery('ref-recovery',s);
@@ -699,6 +844,9 @@ function renderRefereeGrid() {
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
           <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
         </div>
+        ${s.totalSessions>0 ? `<div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
+          ${Object.values(s.catBreakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}"></div>`).join('')}
+        </div>` : ''}
         ${!r.connected?`<button onclick="event.stopPropagation();showInviteForReferee('${r.id}','${r.name}')" style="margin-top:8px;width:100%;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px;border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-family:inherit">Invite →</button>`:''}
       </div>`;
   }).join('') + `<button class="add-ref-card" onclick="openAddModal()">+ Add referee</button>`;
@@ -728,7 +876,8 @@ function renderDetail() {
   document.getElementById('detail-name').textContent = ref.name;
   document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
   renderStats('detail-stats',s);
-  renderCats('detail-cats',s.categories);
+  renderCatLegend('detail-cat-legend',s.catBreakdown);
+  renderCats('detail-cats',s.categories,s.catBreakdown);
   renderZones('detail-zones',s.zones);
   renderLoad('detail-load',s.weeks);
   renderRecovery('detail-recovery',s);
@@ -837,6 +986,7 @@ async function boot() {
       try{sessionStorage.setItem('rfm_token', data.access_token); sessionStorage.setItem('rfm_athlete', JSON.stringify(REF_STATE.athlete));}catch(e){}
       setLoading('Fetching your activities… (may take 10–20 seconds)');
       REF_STATE.activities = await fetchActivitiesAPI(data.access_token);
+      applyStoredOverrides(REF_STATE.activities);
       showScreen('dashboard');
       renderRefDashboard();
     } catch(e) { showError(e.message); }
@@ -860,6 +1010,7 @@ async function boot() {
       REF_STATE.token   = savedToken;
       REF_STATE.athlete = savedAthlete;
       REF_STATE.activities = await fetchActivitiesAPI(savedToken);
+      applyStoredOverrides(REF_STATE.activities);
       showScreen('dashboard');
       renderRefDashboard();
     } catch(e) {
