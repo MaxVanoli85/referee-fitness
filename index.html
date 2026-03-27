@@ -501,6 +501,10 @@ function coachLogout() {
 
 // ── Strava OAuth ───────────────────────────────────────────────────────
 function connectStravaReferee() {
+  // If there's a ?ref= param in the URL, save it before OAuth redirect wipes the URL
+  const refId = new URLSearchParams(window.location.search).get('ref');
+  try { if (refId) sessionStorage.setItem('invite_ref_id', refId); } catch(e) {}
+
   const url = `https://www.strava.com/oauth/authorize`
     +`?client_id=${STRAVA_CLIENT_ID}`
     +`&response_type=code`
@@ -988,11 +992,14 @@ function timeSince(iso) {
 // ── Push activities to backend ─────────────────────────────────────────
 async function pushActivitiesToBackend(activities, token) {
   try {
-    // Identify which referee this token belongs to by fetching athlete id
     const athlete = REF_STATE.athlete;
     if (!athlete) return;
-    const stravaId = athlete.id;
-    // Strip large fields to keep payload small
+
+    // Get refereeId from URL if they came via invite link
+    // (stored in sessionStorage so it survives the OAuth redirect)
+    let refereeId = null;
+    try { refereeId = sessionStorage.getItem('invite_ref_id'); } catch(e) {}
+
     const slim = activities.map(a => ({
       id: a.id, name: a.name, type: a.type, sport_type: a.sport_type,
       start_date: a.start_date, elapsed_time: a.elapsed_time,
@@ -1000,14 +1007,22 @@ async function pushActivitiesToBackend(activities, token) {
       average_heartrate: a.average_heartrate, max_heartrate: a.max_heartrate,
       _cat: a._cat || null
     }));
-    await fetch(`${BACKEND_URL}/referee/push`, {
+
+    const res = await fetch(`${BACKEND_URL}/referee/push`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ stravaId, activities: slim })
+      body: JSON.stringify({
+        stravaId:        athlete.id,
+        stravaFirstname: athlete.firstname || '',
+        stravaLastname:  athlete.lastname  || '',
+        refereeId:       refereeId,
+        activities:      slim
+      })
     });
+    const data = await res.json();
+    if (data.ok) console.log(`Synced to coach dashboard as: ${data.name} (${data.count} activities)`);
   } catch(e) {
     console.log('Could not push activities to backend:', e.message);
-    // Non-fatal — referee view still works
   }
 }
 
@@ -1021,6 +1036,18 @@ async function boot() {
   if(code||error||refId) window.history.replaceState({},'',window.location.pathname);
 
   if(error) { showScreen('auth'); return; }
+
+  // If arriving via invite link (?ref=...) and not yet connected, go straight to Strava auth
+  if(refId && !code) {
+    try { sessionStorage.setItem('invite_ref_id', refId); } catch(e) {}
+    // Check if already logged in — if so, just push again
+    const existingToken = (() => { try { return sessionStorage.getItem('rfm_token'); } catch(e) { return null; } })();
+    if (!existingToken) {
+      // Auto-start Strava connect for this referee
+      connectStravaReferee();
+      return;
+    }
+  }
 
   // Returning from Strava OAuth
   if(code) {
