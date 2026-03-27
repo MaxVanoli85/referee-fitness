@@ -115,7 +115,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .close-detail:hover{border-color:var(--border2);color:var(--text);}
 
 /* ── STATS ── */
-.stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
+.stats-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-bottom:1.25rem;}
 .stat-card{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 14px;}
 .stat-label{font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;}
 .stat-value{font-size:24px;font-weight:300;font-family:'DM Mono',monospace;line-height:1;}
@@ -184,6 +184,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .add-modal-input:focus{outline:none;border-color:var(--orange-border);}
 
 .empty-state{padding:1.5rem;text-align:center;color:var(--faint);font-size:12px;line-height:1.6;}
+.panel-stat-card{background:var(--bg3);border-radius:var(--radius-sm);padding:8px 10px;}
+.panel-stat-label{font-size:10px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:3px;}
+.panel-stat-value{font-size:18px;font-weight:300;font-family:'DM Mono',monospace;color:var(--text);}
+.act-row{cursor:pointer;}
+.act-row:hover .act-name{color:var(--orange);}
 .cat-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 .cat-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);}
 .cat-legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
@@ -196,7 +201,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .cat-pill.active{font-weight:500;}
 
 @media(max-width:640px){
-  .stats-grid{grid-template-columns:1fr 1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr 1fr;}
   .two-col{grid-template-columns:1fr;}
   .main{padding:1rem;}
   .topbar{padding:0 1rem;}
@@ -573,6 +578,8 @@ function weekNum(d) { if(!d) return 0; return Math.min(Math.ceil(new Date(d).get
 function computeStats(acts) {
   const totalSessions = acts.length;
   const totalMins = Math.round(acts.filter(a=>!EXCLUDE_FROM_LOAD.includes(a.type)&&!EXCLUDE_FROM_LOAD.includes(a.sport_type)).reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
+  const RUN_TYPES = ['Run','TrailRun','VirtualRun'];
+  const totalRunKm = +( acts.filter(a=>RUN_TYPES.includes(a.type)||RUN_TYPES.includes(a.sport_type)).reduce((s,a)=>s+(a.distance||0),0) / 1000 ).toFixed(1);
   const weeks=[0,0,0,0];
   acts.forEach(a=>{
     if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return;
@@ -596,7 +603,38 @@ function computeStats(acts) {
   });
   const zones=approxZones(acts);
   const recent=[...acts].filter(a=>a.start_date).sort((a,b)=>new Date(b.start_date)-new Date(a.start_date)).slice(0,5);
-  return {totalSessions,totalMins,acuteLoad,chronicLoad,ratio,categories,catBreakdown,zones,weeks,recent};
+  return {totalSessions,totalMins,totalRunKm,acuteLoad,chronicLoad,ratio,categories,catBreakdown,zones,weeks,recent};
+}
+
+// Estimate sprints from HR differential (max vs avg) and activity type
+function estimateSprints(act) {
+  const hr    = act.average_heartrate || 0;
+  const hrMax = act.max_heartrate     || 0;
+  const dur   = (act.moving_time || act.elapsed_time || 0) / 60;
+  const dist  = act.distance || 0;
+  const cat   = getCategory(act).key;
+  if (!hr || !hrMax || dur < 5) return null; // not enough data
+  const diff  = hrMax - hr;
+  const pace  = dist > 0 && dur > 0 ? dur / (dist / 1000) : 99;
+  // Sprint signals: large HR spike, fast pace, match/high intensity category
+  if (cat === 'recovery' || cat === 'strength') return 0;
+  if (cat === 'match') {
+    // Matches: estimate from HR spike magnitude
+    if (diff >= 40) return Math.round(6 + (diff - 40) * 0.3);
+    if (diff >= 30) return Math.round(3 + (diff - 30) * 0.3);
+    return 2;
+  }
+  if (cat === 'high') {
+    if (diff >= 35) return Math.round(4 + (diff - 35) * 0.25);
+    if (diff >= 25) return Math.round(2 + (diff - 25) * 0.2);
+    return 1;
+  }
+  if (cat === 'endurance') {
+    if (diff >= 30 && pace < 5.5) return 2;
+    if (diff >= 25) return 1;
+    return 0;
+  }
+  return null;
 }
 
 function approxZones(acts) {
@@ -626,7 +664,8 @@ function renderStats(containerId, s) {
   const h=Math.floor(s.totalMins/60), m=s.totalMins%60;
   document.getElementById(containerId).innerHTML=`
     <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${s.totalSessions}</div><div class="stat-sub">this month</div></div>
-    <div class="stat-card"><div class="stat-label">Volume</div><div class="stat-value">${h}<span style="font-size:12px;color:var(--muted)">h</span>${m}<span style="font-size:12px;color:var(--muted)">m</span></div><div class="stat-sub">active time</div></div>
+    <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:12px;color:var(--muted)">h</span>${m}<span style="font-size:12px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks &amp; hikes</div></div>
+    <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${s.totalRunKm}<span style="font-size:12px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
     <div class="stat-card"><div class="stat-label">Acute load</div><div class="stat-value">${s.acuteLoad}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">vs ${s.chronicLoad}min chronic</div></div>
     <div class="stat-card"><div class="stat-label">A:C ratio</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>`;
 }
@@ -734,17 +773,104 @@ function applyStoredOverrides(activities) {
   } catch(e) {}
 }
 
-function renderFeed(containerId, recent) {
-  document.getElementById(containerId).innerHTML = recent.length
-    ? recent.map(a=>{
-        const c=CAT_MAP[a.type]||CAT_MAP[a.sport_type]||DEF_CAT;
-        const dt=new Date(a.start_date);
-        const day=dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-        const dur=Math.round((a.moving_time||a.elapsed_time||0)/60);
-        const dist=a.distance>0?` · ${(a.distance/1000).toFixed(1)}km`:'';
-        return `<div class="act-row"><div class="act-icon">${c.icon}</div><div class="act-info"><div class="act-name">${a.name}</div><div class="act-meta">${day} · ${dur}min${dist}</div></div><div class="act-hr">${a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—'}</div></div>`;
+// Store all activities for panel access
+let _feedActivities = [];
+
+function renderFeed(containerId, acts) {
+  // Show ALL activities sorted by date, not just 5
+  const sorted = [...acts].filter(a=>a&&a.start_date)
+    .sort((a,b)=>new Date(b.start_date)-new Date(a.start_date));
+  _feedActivities = sorted;
+
+  document.getElementById(containerId).innerHTML = sorted.length
+    ? sorted.map((a,i)=>{
+        const c   = getCategory(a);
+        const dt  = new Date(a.start_date);
+        const day = dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+        const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
+        const dist= a.distance>0?` · ${(a.distance/1000).toFixed(1)}km`:'';
+        const hr  = a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—';
+        return `<div class="act-row" onclick="openActivityPanel(${i})" title="Click to see details">
+          <div class="act-icon" style="background:${c.color}18">${c.icon}</div>
+          <div class="act-info">
+            <div class="act-name">${a.name}</div>
+            <div class="act-meta">${day} · ${dur}min${dist}</div>
+          </div>
+          <div class="act-hr">${hr}</div>
+        </div>`;
       }).join('')
-    : '<div class="empty-state">No recent activities.</div>';
+    : '<div class="empty-state">No activities this month.</div>';
+}
+
+function openActivityPanel(idx) {
+  const a = _feedActivities[idx];
+  if (!a) return;
+  const c   = getCategory(a);
+  const dt  = new Date(a.start_date);
+  const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
+  const dist= a.distance > 0 ? (a.distance/1000).toFixed(2) : null;
+  const pace= dist && dur > 0 ? (dur / parseFloat(dist)).toFixed(2) : null;
+  const paceStr = pace ? `${Math.floor(pace)}:${String(Math.round((pace%1)*60)).padStart(2,'0')} /km` : '—';
+  const sprints = estimateSprints(a);
+  const zones   = approxZones([a]);
+  const zoneNames  = ['Z1','Z2','Z3','Z4','Z5'];
+  const zoneColors = ['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
+
+  document.getElementById('panel-title').textContent = a.name;
+  document.getElementById('panel-date').textContent =
+    dt.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long',year:'numeric'});
+
+  // Category badge
+  document.getElementById('panel-cat').style.cssText =
+    `background:${c.color}18;color:${c.color};border:1px solid ${c.color}44;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;margin-bottom:1.25rem;`;
+  document.getElementById('panel-cat').innerHTML = `${c.icon} ${c.label}`;
+
+  // Key stats
+  const stats = [
+    {label:'Duration',    value: dur+'min'},
+    {label:'Distance',    value: dist ? dist+'km' : '—'},
+    {label:'Avg pace',    value: paceStr},
+    {label:'Avg HR',      value: a.average_heartrate ? Math.round(a.average_heartrate)+' bpm' : '—'},
+    {label:'Max HR',      value: a.max_heartrate ? Math.round(a.max_heartrate)+' bpm' : '—'},
+    {label:'Elevation',   value: a.total_elevation_gain ? Math.round(a.total_elevation_gain)+'m' : '—'},
+  ];
+  document.getElementById('panel-stats').innerHTML = stats.map(s=>
+    `<div class="panel-stat-card"><div class="panel-stat-label">${s.label}</div><div class="panel-stat-value">${s.value}</div></div>`
+  ).join('');
+
+  // HR zones
+  document.getElementById('panel-hr').innerHTML = a.average_heartrate
+    ? zones.map((z,i)=>`
+        <div class="zone-row">
+          <span class="zone-lbl">${zoneNames[i]}</span>
+          <div class="zone-bar-wrap"><div class="zone-bar" style="width:${z}%;background:${zoneColors[i]}"></div></div>
+          <span class="zone-pct">${z}%</span>
+        </div>`).join('')
+    : '<div style="font-size:12px;color:var(--faint)">No HR data for this activity.</div>';
+
+  // Sprints
+  const sprintSection = document.getElementById('panel-sprints-section');
+  if (sprints !== null) {
+    sprintSection.style.display = 'block';
+    document.getElementById('panel-sprints').innerHTML = sprints > 0
+      ? `<div style="display:flex;align-items:center;gap:10px">
+           <div style="font-size:28px;font-weight:300;font-family:'DM Mono',monospace;color:var(--orange)">${sprints}</div>
+           <div style="font-size:12px;color:var(--muted);line-height:1.5">estimated sprint<br>efforts detected</div>
+         </div>
+         <div style="font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5">Based on HR spike analysis (max vs avg HR differential). Indicative only.</div>`
+      : `<div style="font-size:12px;color:var(--faint)">No sprint efforts detected in this session.</div>`;
+  } else {
+    sprintSection.style.display = 'none';
+  }
+
+  // Show panel
+  document.getElementById('activity-panel').style.transform = 'translateX(0)';
+  document.getElementById('panel-overlay').style.display = 'block';
+}
+
+function closeActivityPanel() {
+  document.getElementById('activity-panel').style.transform = 'translateX(100%)';
+  document.getElementById('panel-overlay').style.display = 'none';
 }
 
 // ── Month selector ─────────────────────────────────────────────────────
@@ -790,7 +916,7 @@ function renderRefMonth() {
   renderZones('ref-hr-zones',s.zones);
   renderLoad('ref-load-chart',s.weeks);
   renderRecovery('ref-recovery',s);
-  renderFeed('ref-feed',s.recent);
+  renderFeed('ref-feed', actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth)||[]);
 }
 
 function selectRefMonth(key) { REF_STATE.selectedMonth=key; renderRefDashboard(); }
@@ -905,7 +1031,7 @@ function renderDetail() {
   renderZones('detail-zones',s.zones);
   renderLoad('detail-load',s.weeks);
   renderRecovery('detail-recovery',s);
-  renderFeed('detail-feed',s.recent);
+  renderFeed('detail-feed', actsForMonth((COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee)||{activities:[]}).activities||[], COACH_STATE.selectedMonth)||[]);
 }
 
 function selectCoachMonth(key) {
