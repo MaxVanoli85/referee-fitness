@@ -395,10 +395,25 @@ const TYPE_FORCE = {
   Soccer:'match', Football:'match', Rugby:'match',
   WeightTraining:'strength', Crossfit:'strength',
   Walk:'recovery', Yoga:'recovery', Pilates:'recovery',
+  Hike:'recovery',
 };
+
+// Keywords in activity name that signal a match (case-insensitive)
+const MATCH_KEYWORDS = ['bgl ligue','bgl','ph','d1','d2','d3','coupe','match','cdl'];
+
+// Activity types and Strava types to exclude from load calculation
+const EXCLUDE_FROM_LOAD = ['Walk','Hike','VirtualRide'];
+
+function isMatch(act) {
+  const name = (act.name || '').toLowerCase();
+  return MATCH_KEYWORDS.some(k => name.includes(k));
+}
 
 // Auto-categorise a single activity by HR and pace
 function autoCategory(act) {
+  // 0. Name-based match detection (highest priority)
+  if (isMatch(act)) return 'match';
+
   // 1. Force by Strava type
   const forced = TYPE_FORCE[act.type] || TYPE_FORCE[act.sport_type];
   if (forced) return forced;
@@ -553,9 +568,12 @@ function weekNum(d) { if(!d) return 0; return Math.min(Math.ceil(new Date(d).get
 
 function computeStats(acts) {
   const totalSessions = acts.length;
-  const totalMins = Math.round(acts.reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
+  const totalMins = Math.round(acts.filter(a=>!EXCLUDE_FROM_LOAD.includes(a.type)&&!EXCLUDE_FROM_LOAD.includes(a.sport_type)).reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
   const weeks=[0,0,0,0];
-  acts.forEach(a=>{ weeks[weekNum(a.start_date)]+= Math.round((a.moving_time||a.elapsed_time||0)/60); });
+  acts.forEach(a=>{
+    if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return;
+    weeks[weekNum(a.start_date)]+= Math.round((a.moving_time||a.elapsed_time||0)/60);
+  });
   const acuteLoad = weeks[3]+(weeks[2]||0);
   const chronicLoad = Math.round(weeks.reduce((a,b)=>a+b,0)/4);
   const ratio = chronicLoad ? +(acuteLoad/chronicLoad).toFixed(2) : 0;
