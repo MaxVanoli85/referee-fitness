@@ -795,6 +795,8 @@ async function resyncRef() {
   setLoading('Syncing…');
   try {
     REF_STATE.activities = await fetchActivitiesAPI(REF_STATE.token);
+    applyStoredOverrides(REF_STATE.activities);
+    await pushActivitiesToBackend(REF_STATE.activities, REF_STATE.token);
     showScreen('dashboard'); renderRefDashboard();
   } catch(e) { showError(e.message); }
 }
@@ -983,6 +985,32 @@ function timeSince(iso) {
   return Math.floor(s/86400)+'d ago';
 }
 
+// ── Push activities to backend ─────────────────────────────────────────
+async function pushActivitiesToBackend(activities, token) {
+  try {
+    // Identify which referee this token belongs to by fetching athlete id
+    const athlete = REF_STATE.athlete;
+    if (!athlete) return;
+    const stravaId = athlete.id;
+    // Strip large fields to keep payload small
+    const slim = activities.map(a => ({
+      id: a.id, name: a.name, type: a.type, sport_type: a.sport_type,
+      start_date: a.start_date, elapsed_time: a.elapsed_time,
+      moving_time: a.moving_time, distance: a.distance,
+      average_heartrate: a.average_heartrate, max_heartrate: a.max_heartrate,
+      _cat: a._cat || null
+    }));
+    await fetch(`${BACKEND_URL}/referee/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stravaId, activities: slim })
+    });
+  } catch(e) {
+    console.log('Could not push activities to backend:', e.message);
+    // Non-fatal — referee view still works
+  }
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
   const params = new URLSearchParams(window.location.search);
@@ -1005,6 +1033,8 @@ async function boot() {
       setLoading('Fetching your activities… (may take 10–20 seconds)');
       REF_STATE.activities = await fetchActivitiesAPI(data.access_token);
       applyStoredOverrides(REF_STATE.activities);
+      // Push activities to backend so coach can see them
+      await pushActivitiesToBackend(REF_STATE.activities, data.access_token);
       showScreen('dashboard');
       renderRefDashboard();
     } catch(e) { showError(e.message); }
@@ -1029,6 +1059,7 @@ async function boot() {
       REF_STATE.athlete = savedAthlete;
       REF_STATE.activities = await fetchActivitiesAPI(savedToken);
       applyStoredOverrides(REF_STATE.activities);
+      await pushActivitiesToBackend(REF_STATE.activities, savedToken);
       showScreen('dashboard');
       renderRefDashboard();
     } catch(e) {
