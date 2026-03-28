@@ -814,7 +814,7 @@ function renderFeed(containerId, acts) {
         const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
         const dist= a.distance>0?` · ${(a.distance/1000).toFixed(1)}km`:'';
         const hr  = a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—';
-        return `<div class="act-row" onclick="openActivityPanel(this)" data-act-id="${a.id}" title="Click for details" style="cursor:pointer">
+        return `<div class="act-row" data-act-id="${a.id}" title="Click for details" style="cursor:pointer">
           <div class="act-icon" style="background:${c.color}18">${c.icon}</div>
           <div class="act-info">
             <div class="act-name">${a.name}</div>
@@ -824,10 +824,18 @@ function renderFeed(containerId, acts) {
         </div>`;
       }).join('')
     : '<div class="empty-state">No activities this month.</div>';
+
+  // Attach click listener via event delegation (works even after innerHTML replacement)
+  const container = document.getElementById(containerId);
+  if (container) {
+    container.addEventListener('click', function handler(e) {
+      const row = e.target.closest('[data-act-id]');
+      if (row) openActivityPanel(row.dataset.actId);
+    });
+  }
 }
 
-function openActivityPanel(el) {
-  const actId = el.dataset ? el.dataset.actId : el;
+function openActivityPanel(actId) {
   const a = _actRegistry[String(actId)];
   if (!a) return;
   const c   = getCategory(a);
