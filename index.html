@@ -541,7 +541,9 @@ async function exchangeCode(code, refereeId) {
 async function fetchAthleteAPI(token) {
   const r = await fetch('https://www.strava.com/api/v3/athlete',{headers:{Authorization:`Bearer ${token}`}});
   if (!r.ok) throw new Error('Could not fetch athlete');
-  return r.json();
+  const data = await r.json();
+  // Strava provides weight (kg), profile pic, sex, birthday (for age calc)
+  return data;
 }
 
 async function fetchActivitiesAPI(token) {
@@ -773,24 +775,25 @@ function applyStoredOverrides(activities) {
   } catch(e) {}
 }
 
-// Store all activities for panel access
-let _feedActivities = [];
+// Store activities by id for panel access
+const _actRegistry = {};
 
 function renderFeed(containerId, acts) {
-  // Show ALL activities sorted by date, not just 5
   const sorted = [...acts].filter(a=>a&&a.start_date)
     .sort((a,b)=>new Date(b.start_date)-new Date(a.start_date));
-  _feedActivities = sorted;
+  // Register all activities by id
+  sorted.forEach(a => { _actRegistry[String(a.id)] = a; });
 
   document.getElementById(containerId).innerHTML = sorted.length
-    ? sorted.map((a,i)=>{
+    ? sorted.map(a=>{
         const c   = getCategory(a);
         const dt  = new Date(a.start_date);
         const day = dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
         const dur = Math.round((a.moving_time||a.elapsed_time||0)/60);
         const dist= a.distance>0?` · ${(a.distance/1000).toFixed(1)}km`:'';
         const hr  = a.average_heartrate?Math.round(a.average_heartrate)+' bpm':'—';
-        return `<div class="act-row" onclick="openActivityPanel(${i})" title="Click to see details">
+        const safeId = String(a.id).replace(/[^a-zA-Z0-9_-]/g,'');
+        return `<div class="act-row" onclick="openActivityPanel('${safeId}')" title="Click for details">
           <div class="act-icon" style="background:${c.color}18">${c.icon}</div>
           <div class="act-info">
             <div class="act-name">${a.name}</div>
@@ -802,8 +805,8 @@ function renderFeed(containerId, acts) {
     : '<div class="empty-state">No activities this month.</div>';
 }
 
-function openActivityPanel(idx) {
-  const a = _feedActivities[idx];
+function openActivityPanel(actId) {
+  const a = _actRegistry[String(actId)];
   if (!a) return;
   const c   = getCategory(a);
   const dt  = new Date(a.start_date);
@@ -884,7 +887,13 @@ function renderMonthControls(containerId, months, selected, onSelect, onSync) {
 function renderRefDashboard() {
   const athlete = REF_STATE.athlete;
   const initials = athlete?(athlete.firstname?.[0]||'')+(athlete.lastname?.[0]||''):'U';
-  document.getElementById('ref-initials').textContent = initials;
+  const picUrl   = athlete?.profile || athlete?.profile_medium || null;
+  if (picUrl) {
+    document.getElementById('ref-initials').style.cssText =
+      `background:url('${picUrl}') center/cover;border:none;font-size:0`;
+  } else {
+    document.getElementById('ref-initials').textContent = initials;
+  }
   document.getElementById('ref-name').textContent = athlete?`${athlete.firstname} ${athlete.lastname}`:'Athlete';
 
   const months = availableMonths(REF_STATE.activities);
@@ -983,10 +992,13 @@ function renderRefereeGrid() {
       <div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}" onclick="selectReferee('${r.id}')">
         <button class="ref-remove" onclick="event.stopPropagation();removeReferee('${r.id}')" title="Remove">✕</button>
         <div class="ref-card-top">
-          <div class="ref-avatar" style="background:${color}22;border:1px solid ${color}55;color:${color}">${initials}</div>
+          ${r.profile&&r.profile.picture
+            ? `<img src="${r.profile.picture}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0" onerror="this.style.display='none'">`
+            : `<div class="ref-avatar" style="background:${color}22;border:1px solid ${color}55;color:${color}">${initials}</div>`}
           <div>
             <div class="ref-name">${r.name}</div>
             <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
+            ${r.profile&&r.profile.weight?`<div style="font-size:10px;color:var(--faint)">${r.profile.weight}kg${r.profile.city?' · '+r.profile.city:''}</div>`:''}
           </div>
         </div>
         <div class="ref-stats">
@@ -1025,6 +1037,18 @@ function renderDetail() {
   const s = computeStats(acts);
   document.getElementById('detail-name').textContent = ref.name;
   document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
+  // Profile badge in detail
+  const profEl = document.getElementById('detail-profile-badge');
+  if (profEl) {
+    const p = ref.profile || {};
+    const weightStr = p.weight ? `${p.weight} kg` : '';
+    const cityStr   = p.city   ? p.city : '';
+    const parts     = [weightStr, cityStr].filter(Boolean).join(' · ');
+    profEl.style.display = parts ? 'flex' : 'none';
+    profEl.innerHTML = (p.picture
+      ? `<img src="${p.picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px" onerror="this.style.display='none'">`
+      : '') + `<span style="font-size:12px;color:var(--muted)">${parts}</span>`;
+  }
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
   renderCats('detail-cats',s.categories,s.catBreakdown);
@@ -1142,7 +1166,15 @@ async function pushActivitiesToBackend(activities, token) {
         stravaFirstname: athlete.firstname || '',
         stravaLastname:  athlete.lastname  || '',
         refereeId:       refereeId,
-        activities:      slim
+        profile: {
+          picture:  athlete.profile     || athlete.profile_medium || null,
+          weight:   athlete.weight      || null,
+          sex:      athlete.sex         || null,
+          city:     athlete.city        || null,
+          country:  athlete.country     || null,
+          birthday: athlete.birthday    || null,
+        },
+        activities: slim
       })
     });
     const data = await res.json();
