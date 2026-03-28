@@ -617,35 +617,62 @@ function getMonthLabel(key) {
 }
 function weekNum(d) { if(!d) return 0; return Math.min(Math.ceil(new Date(d).getDate()/7)-1,3); }
 
-function computeStats(acts) {
+// Load weight per category
+const LOAD_WEIGHTS = { match:1.0, high:1.0, medium:0.75, endurance:0.5, strength:0.5, recovery:0, other:0 };
+
+function actLoad(a) {
+  if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return 0;
+  const cat = getCategory(a).key;
+  const w   = LOAD_WEIGHTS[cat] !== undefined ? LOAD_WEIGHTS[cat] : 0.5;
+  return Math.round((a.moving_time || a.elapsed_time || 0) / 60 * w);
+}
+
+function computeStats(acts, allActs) {
+  const now = new Date();
+  const msDay = 86400000;
+
+  // ACWR: 7-day acute vs 28-day chronic (weighted minutes)
+  const source = allActs && allActs.length ? allActs : acts;
+  const acute7    = source.filter(a => a.start_date && (now - new Date(a.start_date)) <= 7  * msDay);
+  const chronic28 = source.filter(a => a.start_date && (now - new Date(a.start_date)) <= 28 * msDay);
+  const acuteLoad    = acute7.reduce((s,a)    => s + actLoad(a), 0);
+  const chronicTotal = chronic28.reduce((s,a) => s + actLoad(a), 0);
+  const chronicLoad  = Math.round(chronicTotal / 4);
+  const ratio        = chronicLoad > 0 ? +(acuteLoad / chronicLoad).toFixed(2) : 0;
+
+  // Volume (selected month display)
   const totalSessions = acts.length;
-  const totalMins = Math.round(acts.filter(a=>!EXCLUDE_FROM_LOAD.includes(a.type)&&!EXCLUDE_FROM_LOAD.includes(a.sport_type)).reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
+  const totalMins = Math.round(
+    acts.filter(a => !EXCLUDE_FROM_LOAD.includes(a.type) && !EXCLUDE_FROM_LOAD.includes(a.sport_type))
+        .reduce((s,a) => s + (a.moving_time || a.elapsed_time || 0), 0) / 60);
   const RUN_TYPES = ['Run','TrailRun','VirtualRun'];
-  const totalRunKm = +( acts.filter(a=>RUN_TYPES.includes(a.type)||RUN_TYPES.includes(a.sport_type)).reduce((s,a)=>s+(a.distance||0),0) / 1000 ).toFixed(1);
-  const weeks=[0,0,0,0];
-  acts.forEach(a=>{
-    if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return;
-    weeks[weekNum(a.start_date)]+= Math.round((a.moving_time||a.elapsed_time||0)/60);
-  });
-  const acuteLoad = weeks[3]+(weeks[2]||0);
-  const chronicLoad = Math.round(weeks.reduce((a,b)=>a+b,0)/4);
-  const ratio = chronicLoad ? +(acuteLoad/chronicLoad).toFixed(2) : 0;
-  const catMap={};
-  acts.forEach(a=>{
-    const c=getCategory(a);
-    if(!catMap[c.key]) catMap[c.key]={...c,count:0,mins:0};
+  const totalRunKm = +(acts.filter(a => RUN_TYPES.includes(a.type) || RUN_TYPES.includes(a.sport_type))
+    .reduce((s,a) => s + (a.distance||0), 0) / 1000).toFixed(1);
+
+  // Weekly load bars (weighted, selected month)
+  const weeks = [0,0,0,0];
+  acts.forEach(a => { weeks[weekNum(a.start_date)] += actLoad(a); });
+
+  // Categories (selected month)
+  const catMap = {};
+  acts.forEach(a => {
+    const c = getCategory(a);
+    if (!catMap[c.key]) catMap[c.key] = {...c, count:0, mins:0};
     catMap[c.key].count++;
-    catMap[c.key].mins+=Math.round((a.moving_time||a.elapsed_time||0)/60);
+    catMap[c.key].mins += Math.round((a.moving_time || a.elapsed_time || 0) / 60);
   });
-  const categories=Object.values(catMap).sort((a,b)=>b.count-a.count);
-  // Category breakdown for bar (all 4 main cats always present)
-  const catBreakdown={};
-  ['match','high','medium','endurance','recovery','strength'].forEach(k=>{
-    catBreakdown[k]=catMap[k]||{...TRAIN_CATS[k],count:0,mins:0};
+  const categories = Object.values(catMap).sort((a,b) => b.count - a.count);
+  const catBreakdown = {};
+  ['match','high','medium','endurance','recovery','strength'].forEach(k => {
+    catBreakdown[k] = catMap[k] || {...TRAIN_CATS[k], count:0, mins:0};
   });
-  const zones=approxZones(acts);
-  const recent=[...acts].filter(a=>a.start_date).sort((a,b)=>new Date(b.start_date)-new Date(a.start_date)).slice(0,5);
-  return {totalSessions,totalMins,totalRunKm,acuteLoad,chronicLoad,ratio,categories,catBreakdown,zones,weeks,recent};
+
+  const zones  = approxZones(acts);
+  const recent = [...acts].filter(a => a && a.start_date)
+    .sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).slice(0,5);
+
+  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio,
+          categories, catBreakdown, zones, weeks, recent};
 }
 
 // Estimate sprints from HR differential (max vs avg) and activity type
@@ -707,7 +734,7 @@ function availableMonths(acts) {
 
 // ── Render helpers ─────────────────────────────────────────────────────
 function renderStats(containerId, s) {
-  const rc = s.ratio>1.5?'danger':s.ratio>1.2?'warn':'ok';
+  const rc = s.ratio>1.5?'danger':s.ratio>1.3?'warn':'ok';
   const h=Math.floor(s.totalMins/60), m=s.totalMins%60;
   document.getElementById(containerId).innerHTML=`
     <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${s.totalSessions}</div><div class="stat-sub">this month</div></div>
@@ -752,13 +779,14 @@ function renderLoad(containerId, weeks) {
 }
 
 function renderRecovery(containerId, s) {
-  const rb=s.ratio>1.5?'badge-danger':s.ratio>1.2?'badge-warn':'badge-ok';
-  const rl=s.ratio>1.5?'High risk':s.ratio>1.2?'Moderate':'Low risk';
-  const tip=s.ratio>1.5?'Load spiked. Recommend easy sessions and a rest day.'
-    :s.ratio>1.2?'Slightly elevated. Keep this week lighter.'
-    :'Load is balanced. Maintain current plan.';
+  const rb=s.ratio>1.5?'badge-danger':s.ratio>1.3?'badge-warn':'badge-ok';
+  const rl=s.ratio>1.5?'High risk':s.ratio>1.3?'Moderate':'Low risk';
+  const tip=s.ratio>1.5?'Load spiked significantly. Recommend 2-3 easy/recovery sessions before next high effort.'
+    :s.ratio>1.3?'Load is elevated. Keep this week lighter — no high intensity until ratio drops below 1.3.'
+    :s.ratio>0.8?'Load is well balanced. Safe to maintain or slightly increase training.'
+    :'Load is low. Referee may be undertraining — consider adding a session this week.';
   document.getElementById(containerId).innerHTML=`
-    <div class="rec-row"><span class="rec-label">Overtraining risk</span><span class="badge ${rb}">${rl}</span></div>
+    <div class="rec-row"><span class="rec-label">Load status</span><span class="badge ${rb}">${rl}</span></div>
     <div class="rec-row"><span class="rec-label">A:C ratio</span><span class="badge ${rb}">${s.ratio}</span></div>
     <div class="rec-row"><span class="rec-label">Sessions this month</span><span class="badge badge-ok">${s.totalSessions}</span></div>
     <div class="rec-row"><span class="rec-label">Avg weekly load</span><span class="badge badge-ok">${s.chronicLoad} min</span></div>
@@ -970,7 +998,7 @@ function renderRefDashboard() {
 function renderRefMonth() {
   if(!REF_STATE.selectedMonth) return;
   const acts = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
-  const s = computeStats(acts);
+  const s = computeStats(acts, REF_STATE.activities);
   const name = REF_STATE.athlete?`${REF_STATE.athlete.firstname} ${REF_STATE.athlete.lastname}`:'Athlete';
   document.getElementById('ref-page-title').textContent=`${getMonthLabel(REF_STATE.selectedMonth)} overview`;
   document.getElementById('ref-page-sub').textContent=`${s.totalSessions} sessions · ${name}`;
@@ -1040,7 +1068,7 @@ function renderRefereeGrid() {
 
   grid.innerHTML = COACH_STATE.referees.map((r,i)=>{
     const acts = month ? actsForMonth(r.activities||[], month) : [];
-    const s = computeStats(acts);
+    const s = computeStats(acts, r.activities||[]);
     const rc = s.ratio>1.5?'var(--red)':s.ratio>1.2?'var(--amber)':'var(--green)';
     const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
     const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
@@ -1091,7 +1119,7 @@ function renderDetail() {
   if(!ref) return;
   const month = COACH_STATE.selectedMonth;
   const acts = month ? actsForMonth(ref.activities||[], month) : [];
-  const s = computeStats(acts);
+  const s = computeStats(acts, ref.activities||[]);
   document.getElementById('detail-name').textContent = ref.name;
   document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
   // Profile badge in detail
