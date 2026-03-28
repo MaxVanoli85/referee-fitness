@@ -889,13 +889,13 @@ function openActivityPanel(actId) {
   } else {
     sprintSection.style.display = 'block';
     if (sprints > 0) {
-      sprintEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">'
-        + '<div style="font-size:32px;font-weight:300;font-family:'DM Mono',monospace;color:var(--orange)">' + sprints + '</div>'
-        + '<div style="font-size:12px;color:var(--muted);line-height:1.6">estimated sprint<br>efforts detected</div>'
-        + '</div>'
-        + '<div style="font-size:11px;color:var(--faint);line-height:1.5;padding:6px 8px;background:var(--bg3);border-radius:var(--radius-sm)">Based on HR spike analysis. Indicative only — Strava lap data not available on free API.</div>';
+      sprintEl.innerHTML = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+        <div style="font-size:32px;font-weight:300;color:var(--orange)">${sprints}</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6">estimated sprint<br>efforts detected</div>
+      </div>
+      <div style="font-size:11px;color:var(--faint);line-height:1.5;padding:6px 8px;background:var(--bg3);border-radius:var(--radius-sm)">Based on HR spike analysis. Indicative only.</div>`;
     } else {
-      sprintEl.innerHTML = '<div style="font-size:12px;color:var(--faint)">No sprint efforts detected in this session.</div>';
+      sprintEl.innerHTML = `<div style="font-size:12px;color:var(--faint)">No sprint efforts detected in this session.</div>`;
     }
   }
 
