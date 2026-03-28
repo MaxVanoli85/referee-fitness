@@ -412,12 +412,13 @@ const APP_URL          = 'https://maxvanoli85.github.io/referee-fitness';
 const REDIRECT_URI = window.location.href.split('?')[0].replace(/#.*$/,'');
 // ── Training categories ────────────────────────────────────────────────
 const TRAIN_CATS = {
-  match:     { label:'Match day',     icon:'⚽', color:'#22c97a', short:'Match'    },
-  high:      { label:'High intensity',icon:'⚡', color:'#fc4c02', short:'High int' },
-  endurance: { label:'Endurance',     icon:'🏃', color:'#4a9eff', short:'Endurance'},
-  recovery:  { label:'Recovery',      icon:'🌀', color:'#7f77dd', short:'Recovery' },
-  strength:  { label:'Strength',      icon:'🏋️', color:'#f5a623', short:'Strength' },
-  other:     { label:'Other',         icon:'🎯', color:'#555',    short:'Other'    },
+  match:     { label:'Match day',      icon:'⚽', color:'#22c97a', short:'Match'   },
+  high:      { label:'High intensity', icon:'⚡', color:'#f0544f', short:'High'    },
+  medium:    { label:'Medium intensity',icon:'🔥', color:'#f5a623', short:'Medium' },
+  endurance: { label:'Endurance',      icon:'🏃', color:'#4a9eff', short:'Endurance'},
+  recovery:  { label:'Recovery',       icon:'🌀', color:'#7f77dd', short:'Recovery'},
+  strength:  { label:'Strength',       icon:'🏋️', color:'#888',   short:'Strength'},
+  other:     { label:'Other',          icon:'🎯', color:'#555',   short:'Other'   },
 };
 
 // Strava type → force category (overrides HR logic)
@@ -454,24 +455,38 @@ function autoCategory(act) {
   const dist  = act.distance || 0; // metres
   const pace  = dist > 0 && dur > 0 ? dur / (dist / 1000) : 99; // min/km
 
-  // 2. HR-based rules (most reliable)
+  // 2. HR + duration combined rules
   if (hr > 0) {
-    if (hr >= 165 || hrMax >= 185)           return 'high';
-    if (hr >= 150)                            return 'high';
-    if (hr >= 138 && hr < 150)               return 'endurance';
+    // High: Z4-Z5 (avg HR ≥ 155) OR very high max HR spike
+    if (hr >= 155 || hrMax >= 185)            return 'high';
+
+    // High: Z3-Z4 boundary with short/intense duration (interval-style)
+    if (hr >= 145 && dur < 45)                return 'high';
+
+    // Medium: Z3-Z4 (avg HR 138–154) with moderate duration
+    if (hr >= 145 && dur >= 45)               return 'medium';
+    if (hr >= 138 && hr < 145 && dur >= 30)   return 'medium';
+    if (hr >= 138 && hr < 145 && dur < 30)    return 'high'; // short & threshold = high
+
+    // Endurance: Z2 (avg HR 125–137) long effort
     if (hr >= 125 && hr < 138) {
-      // Long easy run vs recovery
-      return (dur >= 45 || dist >= 8000) ? 'endurance' : 'recovery';
+      if (dur >= 50 || dist >= 8000)          return 'endurance';
+      if (dur >= 30)                          return 'medium'; // moderate Z2 = medium
+      return 'recovery';
     }
+
+    // Recovery: Z1 (avg HR < 125)
     if (hr < 125)                             return 'recovery';
   }
 
-  // 3. Fallback: pace/duration
-  if (pace < 5.5 && dur >= 20)               return 'high';
-  if (pace < 7.0 && dur >= 40)               return 'endurance';
-  if (dur < 30)                              return 'recovery';
+  // 3. Fallback: pace/duration when no HR data
+  if (pace < 5.0 && dur >= 15)               return 'high';
+  if (pace < 5.5 && dur >= 30)               return 'medium';
+  if (pace < 7.0 && dur >= 50)               return 'endurance';
+  if (dur >= 30 && dur < 60)                 return 'medium';
+  if (dur >= 60)                             return 'endurance';
 
-  return 'endurance';
+  return 'recovery';
 }
 
 // Get effective category (manual override wins)
@@ -625,7 +640,7 @@ function computeStats(acts) {
   const categories=Object.values(catMap).sort((a,b)=>b.count-a.count);
   // Category breakdown for bar (all 4 main cats always present)
   const catBreakdown={};
-  ['match','high','endurance','recovery','strength'].forEach(k=>{
+  ['match','high','medium','endurance','recovery','strength'].forEach(k=>{
     catBreakdown[k]=catMap[k]||{...TRAIN_CATS[k],count:0,mins:0};
   });
   const zones=approxZones(acts);
@@ -655,6 +670,11 @@ function estimateSprints(act) {
     if (diff >= 35) return Math.round(4 + (diff - 35) * 0.25);
     if (diff >= 25) return Math.round(2 + (diff - 25) * 0.2);
     return 1;
+  }
+  if (cat === 'medium') {
+    if (diff >= 30) return 2;
+    if (diff >= 20) return 1;
+    return 0;
   }
   if (cat === 'endurance') {
     if (diff >= 30 && pace < 5.5) return 2;
