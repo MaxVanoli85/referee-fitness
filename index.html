@@ -270,9 +270,20 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
   </div>
   <div class="main">
-    <div class="page-header">
-      <h1 id="ref-page-title">My overview</h1>
-      <p id="ref-page-sub">Loading your activities…</p>
+    <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+      <div>
+        <h1 id="ref-page-title">My overview</h1>
+        <p id="ref-page-sub">Loading your activities…</p>
+      </div>
+      <button class="btn-ghost" onclick="openProfileModal()" style="flex-shrink:0">Edit profile</button>
+    </div>
+    <!-- Profile banner -->
+    <div id="ref-profile-banner" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
+      <div id="ref-profile-pic-wrap"></div>
+      <div style="flex:1;">
+        <div id="ref-profile-name" style="font-size:16px;font-weight:500;color:var(--text)"></div>
+        <div id="ref-profile-fields" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:6px;"></div>
+      </div>
     </div>
     <div class="coach-controls" id="ref-month-controls"></div>
     <div class="stats-grid" id="ref-stats-grid"></div>
@@ -371,6 +382,46 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   </div>
 </div>
 <div id="panel-overlay" onclick="closeActivityPanel()" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:299;display:none;"></div>
+
+<!-- ═══ PROFILE MODAL ══════════════════════════════════════════════ -->
+<div id="profile-modal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:440px">
+    <h3>My profile</h3>
+    <p>This information is shared with your coach. Weight is synced from Strava automatically.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Age</div>
+        <input class="add-modal-input" type="number" id="profile-age" placeholder="e.g. 28" min="16" max="70" style="margin-bottom:0">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Height (cm)</div>
+        <input class="add-modal-input" type="number" id="profile-height" placeholder="e.g. 178" min="140" max="220" style="margin-bottom:0">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Weight (kg) — from Strava</div>
+        <input class="add-modal-input" type="number" id="profile-weight" placeholder="e.g. 75" min="40" max="150" style="margin-bottom:0;opacity:0.7">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Referee level</div>
+        <select id="profile-level" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--radius-sm);">
+          <option value="">Select level…</option>
+          <option value="National">National</option>
+          <option value="BGL Ligue">BGL Ligue</option>
+          <option value="Promotion Honneur">Promotion Honneur</option>
+          <option value="D1">D1</option>
+          <option value="D2">D2</option>
+          <option value="D3">D3</option>
+          <option value="Regional">Regional</option>
+        </select>
+      </div>
+    </div>
+    <div id="profile-save-msg" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button onclick="closeProfileModal()">Cancel</button>
+      <button class="primary" onclick="saveProfile()">Save profile</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══ INVITE MODAL ════════════════════════════════════════════════════ -->
 <div id="invite-modal" class="modal-overlay" style="display:none">
@@ -972,6 +1023,9 @@ function renderMonthControls(containerId, months, selected, onSelect, onSync) {
 function renderRefDashboard() {
   const athlete = REF_STATE.athlete;
   const initials = athlete?(athlete.firstname?.[0]||'')+(athlete.lastname?.[0]||''):'U';
+  // Restore saved profile
+  if (!REF_STATE.profile) REF_STATE.profile = loadStoredProfile();
+  renderProfileBanner();
   const picUrl   = athlete?.profile || athlete?.profile_medium || null;
   if (picUrl) {
     document.getElementById('ref-initials').style.cssText =
@@ -1126,13 +1180,22 @@ function renderDetail() {
   const profEl = document.getElementById('detail-profile-badge');
   if (profEl) {
     const p = ref.profile || {};
-    const weightStr = p.weight ? `${p.weight} kg` : '';
-    const cityStr   = p.city   ? p.city : '';
-    const parts     = [weightStr, cityStr].filter(Boolean).join(' · ');
-    profEl.style.display = parts ? 'flex' : 'none';
-    profEl.innerHTML = (p.picture
-      ? `<img src="${p.picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px" onerror="this.style.display='none'">`
-      : '') + `<span style="font-size:12px;color:var(--muted)">${parts}</span>`;
+    const fields = [
+      p.age    ? p.age + ' yrs'   : null,
+      p.height ? p.height + ' cm' : null,
+      p.weight ? p.weight + ' kg' : null,
+      p.level  || null,
+      p.city   || null,
+    ].filter(Boolean);
+    if (fields.length) {
+      profEl.style.display = 'flex';
+      profEl.innerHTML = (p.picture
+        ? `<img src="${p.picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px;border-radius:50%" onerror="this.style.display='none'">`
+        : '')
+        + fields.map(f => `<span style="font-size:12px;color:var(--muted);margin-right:12px">${f}</span>`).join('');
+    } else {
+      profEl.style.display = 'none';
+    }
   }
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
@@ -1253,11 +1316,13 @@ async function pushActivitiesToBackend(activities, token) {
         refereeId:       refereeId,
         profile: {
           picture:  athlete.profile     || athlete.profile_medium || null,
-          weight:   athlete.weight      || null,
+          weight:   REF_STATE.profile?.weight || athlete.weight || null,
           sex:      athlete.sex         || null,
           city:     athlete.city        || null,
           country:  athlete.country     || null,
-          birthday: athlete.birthday    || null,
+          age:      REF_STATE.profile?.age    || null,
+          height:   REF_STATE.profile?.height || null,
+          level:    REF_STATE.profile?.level  || null,
         },
         activities: slim
       })
@@ -1267,6 +1332,75 @@ async function pushActivitiesToBackend(activities, token) {
   } catch(e) {
     console.log('Could not push activities to backend:', e.message);
   }
+}
+
+// ── Profile ────────────────────────────────────────────────────────────
+function loadStoredProfile() {
+  try { return JSON.parse(sessionStorage.getItem('ref_profile') || 'null'); } catch(e) { return null; }
+}
+function saveStoredProfile(p) {
+  try { sessionStorage.setItem('ref_profile', JSON.stringify(p)); } catch(e) {}
+}
+
+function openProfileModal() {
+  const p = REF_STATE.profile || loadStoredProfile() || {};
+  const stravaWeight = REF_STATE.athlete?.weight || null;
+  document.getElementById('profile-age').value    = p.age    || '';
+  document.getElementById('profile-height').value = p.height || '';
+  document.getElementById('profile-weight').value = p.weight || stravaWeight || '';
+  document.getElementById('profile-level').value  = p.level  || '';
+  document.getElementById('profile-save-msg').textContent = '';
+  document.getElementById('profile-modal').style.display = 'flex';
+}
+function closeProfileModal() {
+  document.getElementById('profile-modal').style.display = 'none';
+}
+
+async function saveProfile() {
+  const p = {
+    age:    parseInt(document.getElementById('profile-age').value)    || null,
+    height: parseInt(document.getElementById('profile-height').value) || null,
+    weight: parseFloat(document.getElementById('profile-weight').value) || REF_STATE.athlete?.weight || null,
+    level:  document.getElementById('profile-level').value || null,
+  };
+  REF_STATE.profile = p;
+  saveStoredProfile(p);
+  // Push to backend alongside activities
+  await pushActivitiesToBackend(REF_STATE.activities, REF_STATE.token);
+  document.getElementById('profile-save-msg').textContent = 'Saved!';
+  setTimeout(closeProfileModal, 800);
+  renderProfileBanner();
+}
+
+function renderProfileBanner() {
+  const athlete = REF_STATE.athlete;
+  const p = REF_STATE.profile || loadStoredProfile() || {};
+  const stravaWeight = athlete?.weight || null;
+  const weight = p.weight || stravaWeight;
+  const banner = document.getElementById('ref-profile-banner');
+  if (!athlete) { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+
+  // Profile pic
+  const picWrap = document.getElementById('ref-profile-pic-wrap');
+  const picUrl  = athlete.profile || athlete.profile_medium || null;
+  picWrap.innerHTML = picUrl
+    ? `<img src="${picUrl}" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:1px solid var(--border2)">`
+    : `<div style="width:52px;height:52px;border-radius:50%;background:var(--orange-dim);border:1px solid var(--orange-border);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;color:var(--orange)">${(athlete.firstname?.[0]||'')+(athlete.lastname?.[0]||'')}</div>`;
+
+  document.getElementById('ref-profile-name').textContent =
+    `${athlete.firstname || ''} ${athlete.lastname || ''}`.trim();
+
+  const fields = [
+    { label:'Age',    value: p.age    ? p.age + ' yrs'  : null },
+    { label:'Height', value: p.height ? p.height + ' cm': null },
+    { label:'Weight', value: weight   ? weight + ' kg'  : null },
+    { label:'Level',  value: p.level  || null },
+  ].filter(f => f.value);
+
+  document.getElementById('ref-profile-fields').innerHTML = fields.length
+    ? fields.map(f => `<div style="font-size:12px;color:var(--muted)">${f.label}: <span style="color:var(--text);font-weight:500">${f.value}</span></div>`).join('')
+    : `<div style="font-size:12px;color:var(--faint)">No profile info yet — click "Edit profile" to add.</div>`;
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
