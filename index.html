@@ -398,8 +398,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input class="add-modal-input" type="number" id="profile-height" placeholder="e.g. 178" min="140" max="220" style="margin-bottom:0">
       </div>
       <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Weight (kg) — from Strava</div>
-        <input class="add-modal-input" type="number" id="profile-weight" placeholder="e.g. 75" min="40" max="150" style="margin-bottom:0;opacity:0.7">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Weight (kg)</div>
+        <input class="add-modal-input" type="number" id="profile-weight" placeholder="e.g. 75" min="40" max="150" style="margin-bottom:0">
       </div>
       <div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Referee level</div>
@@ -1293,8 +1293,11 @@ async function pushActivitiesToBackend(activities, token) {
     const athlete = REF_STATE.athlete;
     if (!athlete) return;
 
+    // Always merge stored profile before pushing so manual fields are included
+    if (!REF_STATE.profile) REF_STATE.profile = loadStoredProfile() || {};
+    const prof = REF_STATE.profile || {};
+
     // Get refereeId from URL if they came via invite link
-    // (stored in sessionStorage so it survives the OAuth redirect)
     let refereeId = null;
     try { refereeId = sessionStorage.getItem('invite_ref_id'); } catch(e) {}
 
@@ -1315,14 +1318,14 @@ async function pushActivitiesToBackend(activities, token) {
         stravaLastname:  athlete.lastname  || '',
         refereeId:       refereeId,
         profile: {
-          picture:  athlete.profile     || athlete.profile_medium || null,
-          weight:   REF_STATE.profile?.weight || athlete.weight || null,
-          sex:      athlete.sex         || null,
-          city:     athlete.city        || null,
-          country:  athlete.country     || null,
-          age:      REF_STATE.profile?.age    || null,
-          height:   REF_STATE.profile?.height || null,
-          level:    REF_STATE.profile?.level  || null,
+          picture:  athlete.profile || athlete.profile_medium || null,
+          weight:   prof.weight  || athlete.weight || null,
+          age:      prof.age     || null,
+          height:   prof.height  || null,
+          level:    prof.level   || null,
+          sex:      athlete.sex  || null,
+          city:     athlete.city || null,
+          country:  athlete.country || null,
         },
         activities: slim
       })
@@ -1349,6 +1352,11 @@ function openProfileModal() {
   document.getElementById('profile-height').value = p.height || '';
   document.getElementById('profile-weight').value = p.weight || stravaWeight || '';
   document.getElementById('profile-level').value  = p.level  || '';
+  // Show hint if Strava has no weight
+  const weightInput = document.getElementById('profile-weight');
+  weightInput.title = stravaWeight
+    ? 'Pre-filled from your Strava profile'
+    : 'Not found on Strava — enter manually';
   document.getElementById('profile-save-msg').textContent = '';
   document.getElementById('profile-modal').style.display = 'flex';
 }
@@ -1358,15 +1366,17 @@ function closeProfileModal() {
 
 async function saveProfile() {
   const p = {
-    age:    parseInt(document.getElementById('profile-age').value)    || null,
-    height: parseInt(document.getElementById('profile-height').value) || null,
+    age:    parseInt(document.getElementById('profile-age').value)      || null,
+    height: parseInt(document.getElementById('profile-height').value)   || null,
     weight: parseFloat(document.getElementById('profile-weight').value) || REF_STATE.athlete?.weight || null,
-    level:  document.getElementById('profile-level').value || null,
+    level:  document.getElementById('profile-level').value              || null,
   };
   REF_STATE.profile = p;
   saveStoredProfile(p);
-  // Push to backend alongside activities
+  setLoading('Saving profile…');
+  // Push profile + activities to backend
   await pushActivitiesToBackend(REF_STATE.activities, REF_STATE.token);
+  showScreen('dashboard');
   document.getElementById('profile-save-msg').textContent = 'Saved!';
   setTimeout(closeProfileModal, 800);
   renderProfileBanner();
