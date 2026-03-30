@@ -1902,9 +1902,16 @@ async function loadCAFDashboard() {
     const data = await res.json();
     COACH_STATE.referees = data.referees || [];
     const allActs = COACH_STATE.referees.flatMap(r => r.activities||[]);
-    const months  = availableMonths(allActs);
-    if (!COACH_STATE.selectedMonth || !months.includes(COACH_STATE.selectedMonth))
-      COACH_STATE.selectedMonth = months[0] || null;
+    // Include months from feedback keys too
+    const feedbackMonths = COACH_STATE.referees.flatMap(r =>
+      Object.keys(r.feedback||{})
+    );
+    const allMonths = [...new Set([...availableMonths(allActs), ...feedbackMonths])].sort().reverse();
+    if (!COACH_STATE.selectedMonth || !allMonths.includes(COACH_STATE.selectedMonth))
+      COACH_STATE.selectedMonth = allMonths[0] || (() => {
+        const n = new Date();
+        return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0');
+      })();
     showScreen('caf');
     renderCAFDashboard();
   } catch(e) { showError(e.message); }
@@ -1918,10 +1925,11 @@ function renderCAFDashboard() {
     `${connected} of ${refs.length} referees connected · ${getMonthLabel(month)}`;
 
   const allActs = refs.flatMap(r => r.activities||[]);
-  const months  = availableMonths(allActs);
-  if (months.length) {
+  const feedbackMonths = refs.flatMap(r => Object.keys(r.feedback||{}));
+  const allMonths = [...new Set([...availableMonths(allActs), ...feedbackMonths])].sort().reverse().slice(0,6);
+  if (allMonths.length) {
     document.getElementById('caf-month-controls').innerHTML =
-      months.map(k => `<button class="month-btn ${k===month?'active':''}"
+      allMonths.map(k => `<button class="month-btn ${k===month?'active':''}"
         onclick="COACH_STATE.selectedMonth='${k}';renderCAFDashboard()">${getMonthLabel(k)}</button>`).join('');
   }
 
