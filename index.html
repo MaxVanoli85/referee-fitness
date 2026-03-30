@@ -260,7 +260,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v4</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v5</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -311,7 +311,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v4</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v5</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -779,14 +779,13 @@ function approxZones(acts) {
 }
 
 // Estimate zone distribution for a SINGLE activity in minutes
-// Uses avg HR, max HR, and category to spread time across adjacent zones
 function approxZonesSingle(act) {
-  const dur    = Math.round((act.moving_time || act.elapsed_time || 0) / 60); // total minutes
+  const dur    = Math.round((act.moving_time || act.elapsed_time || 0) / 60);
   const avgHR  = act.average_heartrate || 0;
   const maxHR  = act.max_heartrate     || 0;
   const cat    = getCategory(act).key;
-
-  if (!avgHR || dur < 1) return null; // no HR data
+  console.log('[zones] dur='+dur+' avgHR='+avgHR+' maxHR='+maxHR+' cat='+cat);
+  if (!avgHR || dur < 1) { console.log('[zones] no HR data'); return null; }
 
   // Determine primary zone from avg HR
   let primaryZone;
@@ -837,7 +836,8 @@ function approxZonesSingle(act) {
   }
   mins[primaryZone] = Math.max(0, mins[primaryZone]);
 
-  return mins; // returns MINUTES per zone
+  console.log('[zones] result mins='+JSON.stringify(mins));
+  return mins;
 }
 
 function actsForMonth(acts,key) {
