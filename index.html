@@ -260,7 +260,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v5</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v6</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -311,7 +311,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v5</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v6</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -784,7 +784,6 @@ function approxZonesSingle(act) {
   const avgHR  = act.average_heartrate || 0;
   const maxHR  = act.max_heartrate     || 0;
   const cat    = getCategory(act).key;
-  console.log('[zones] dur='+dur+' avgHR='+avgHR+' maxHR='+maxHR+' cat='+cat);
   if (!avgHR || dur < 1) { console.log('[zones] no HR data'); return null; }
 
   // Determine primary zone from avg HR
@@ -836,7 +835,6 @@ function approxZonesSingle(act) {
   }
   mins[primaryZone] = Math.max(0, mins[primaryZone]);
 
-  console.log('[zones] result mins='+JSON.stringify(mins));
   return mins;
 }
 
@@ -1047,12 +1045,16 @@ function openActivityPanel(actId) {
     const maxMins = Math.max(...zoneMins, 1);
     const totalZoneMins = zoneMins.reduce((s,v)=>s+v,0);
     document.getElementById('panel-hr').innerHTML = zoneMins.map((z,i)=> {
-      const pct = totalZoneMins > 0 ? Math.round(z/totalZoneMins*100) : 0;
-      return `<div class="zone-row">
-        <span class="zone-lbl" style="width:72px">${zoneNames[i]}</span>
-        <div class="zone-bar-wrap"><div class="zone-bar" style="width:${Math.round(z/maxMins*100)}%;background:${zoneColors[i]}"></div></div>
-        <span style="font-size:10px;color:var(--muted);width:44px;text-align:right;font-family:'DM Mono',monospace">${z}min</span>
-        <span style="font-size:10px;color:var(--faint);width:28px;text-align:right">${pct}%</span>
+      const pct     = totalZoneMins > 0 ? Math.round(z / totalZoneMins * 100) : 0;
+      const barW    = Math.round(z / maxMins * 100);
+      const opacity = z === 0 ? '0.25' : '1';
+      return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
+        <span style="font-size:10px;color:var(--muted);width:80px;flex-shrink:0;font-family:'DM Mono',monospace">${zoneNames[i]}</span>
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+          <div style="width:${barW}%;height:100%;background:${zoneColors[i]};border-radius:3px;opacity:${opacity};transition:width 0.4s ease;"></div>
+        </div>
+        <span style="font-size:10px;color:var(--muted);width:32px;text-align:right;font-family:'DM Mono',monospace;flex-shrink:0">${z}m</span>
+        <span style="font-size:10px;color:var(--faint);width:28px;text-align:right;flex-shrink:0">${pct}%</span>
       </div>`;
     }).join('');
   }
