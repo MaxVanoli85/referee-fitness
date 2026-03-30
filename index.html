@@ -260,7 +260,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v6</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v7</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -311,7 +311,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v6</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v7</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -377,7 +377,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   <div style="padding:1.25rem;flex:1;">
     <div id="panel-cat" style="margin-bottom:1.25rem;"></div>
     <div id="panel-stats" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem;"></div>
-    <div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Heart rate zones</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;">Heart rate zones</div><div id="panel-zone-method" style="font-size:10px;color:var(--faint);"></div></div>
     <div id="panel-hr" style="margin-bottom:1.25rem;"></div>
     <div id="panel-sprints-section" style="margin-bottom:1.25rem;">
       <div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Sprint efforts</div>
@@ -395,7 +395,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem;">
       <div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Age</div>
-        <input class="add-modal-input" type="number" id="profile-age" placeholder="e.g. 28" min="16" max="70" style="margin-bottom:0">
+        <input class="add-modal-input" type="number" id="profile-age" placeholder="e.g. 28" min="16" max="70" style="margin-bottom:0" oninput="updateMaxHRHint()">
       </div>
       <div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Height (cm)</div>
@@ -417,6 +417,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <option value="D3">D3</option>
           <option value="Regional">Regional</option>
         </select>
+      </div>
+      <div style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:11px;color:var(--muted);">Max heart rate (bpm)</div>
+          <div id="maxhr-hint" style="font-size:11px;color:var(--faint);"></div>
+        </div>
+        <input class="add-modal-input" type="number" id="profile-maxhr" placeholder="e.g. 187 — leave blank to use 220−age formula" min="140" max="220" style="margin-bottom:0">
+        <div style="font-size:10px;color:var(--faint);margin-top:4px;line-height:1.5">Used to personalise your HR zones. If left blank, we use 220−age if your age is set, otherwise fixed thresholds.</div>
       </div>
     </div>
     <div id="profile-save-msg" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px;"></div>
@@ -672,7 +680,55 @@ function getMonthLabel(key) {
 }
 function weekNum(d) { if(!d) return 0; return Math.min(Math.ceil(new Date(d).getDate()/7)-1,3); }
 
-// Load weight per category
+// ── Personalised HR zones ──────────────────────────────────────────────
+// Returns effective max HR for a referee using the fallback chain:
+// 1. Manual max HR from profile
+// 2. 220 - age formula if age is set
+// 3. null → use fixed absolute thresholds
+function getMaxHR(profile) {
+  if (!profile) return null;
+  if (profile.maxhr && profile.maxhr >= 140) return profile.maxhr;
+  if (profile.age  && profile.age  >= 16)   return Math.round(220 - profile.age);
+  return null;
+}
+
+// Returns zone thresholds [z1max, z2max, z3max, z4max] in bpm
+// Z5 is everything above z4max
+function getZoneThresholds(profile) {
+  const maxHR = getMaxHR(profile);
+  if (maxHR) {
+    // Percentage-based zones (standard sports science)
+    return [
+      Math.round(maxHR * 0.60), // Z1 < 60%
+      Math.round(maxHR * 0.70), // Z2 60-70%
+      Math.round(maxHR * 0.80), // Z3 70-80%
+      Math.round(maxHR * 0.90), // Z4 80-90%
+      // Z5 > 90%
+    ];
+  }
+  // Fixed fallback thresholds
+  return [115, 138, 155, 170];
+}
+
+// Assign a single HR value to a zone index (0-4)
+function hrToZone(hr, thresholds) {
+  if (hr < thresholds[0]) return 0;
+  if (hr < thresholds[1]) return 1;
+  if (hr < thresholds[2]) return 2;
+  if (hr < thresholds[3]) return 3;
+  return 4;
+}
+
+// Zone method label for display
+function zoneMethodLabel(profile) {
+  const maxHR = getMaxHR(profile);
+  if (!maxHR) return 'Fixed thresholds';
+  if (profile && profile.maxhr && profile.maxhr >= 140) return `Based on max HR ${profile.maxhr} bpm`;
+  if (profile && profile.age) return `Based on 220−${profile.age} = ${maxHR} bpm`;
+  return 'Fixed thresholds';
+}
+
+// ── Load weight per category
 const LOAD_WEIGHTS = { match:1.0, high:1.0, medium:0.75, endurance:0.5, strength:0.5, recovery:0, other:0 };
 
 function actLoad(a) {
@@ -766,13 +822,13 @@ function estimateSprints(act) {
   return null;
 }
 
-function approxZones(acts) {
+function approxZones(acts, profile) {
+  const thr = getZoneThresholds(profile || REF_STATE.profile || null);
   let z=[0,0,0,0,0];
   acts.forEach(a=>{
     if(!a.average_heartrate) return;
     const p=a.moving_time||a.elapsed_time||0;
-    const hr=a.average_heartrate;
-    if(hr<115) z[0]+=p; else if(hr<138) z[1]+=p; else if(hr<155) z[2]+=p; else if(hr<170) z[3]+=p; else z[4]+=p;
+    z[hrToZone(a.average_heartrate, thr)]+=p;
   });
   const t=z.reduce((a,b)=>a+b,0)||1;
   return z.map(v=>Math.round(v/t*100));
@@ -1011,7 +1067,10 @@ function openActivityPanel(actId) {
   const pace= dist && dur > 0 ? (dur / parseFloat(dist)).toFixed(2) : null;
   const paceStr = pace ? `${Math.floor(pace)}:${String(Math.round((pace%1)*60)).padStart(2,'0')} /km` : '—';
   const sprints  = estimateSprints(a);
-  const zoneMins = approxZonesSingle(a); // minutes per zone
+  const refProfile = REF_STATE.profile || loadStoredProfile() || null;
+  const zoneMins = approxZonesSingle(a, refProfile);
+  const methodEl = document.getElementById('panel-zone-method');
+  if (methodEl) methodEl.textContent = zoneMethodLabel(refProfile);
   const zoneNames  = ['Z1 easy','Z2 aerobic','Z3 tempo','Z4 threshold','Z5 max'];
   const zoneColors = ['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
 
@@ -1267,11 +1326,13 @@ function renderDetail() {
   // Profile fields badge
   const profEl = document.getElementById('detail-profile-badge');
   if (profEl) {
+    const effMaxHR = getMaxHR(p);
     const badges = [
       p.age    ? {label:'Age',    value: p.age    + ' yrs'} : null,
       p.height ? {label:'Height', value: p.height + ' cm'}  : null,
       p.weight ? {label:'Weight', value: p.weight + ' kg'}  : null,
       p.level  ? {label:'Level',  value: p.level}            : null,
+      effMaxHR ? {label:'Max HR', value: effMaxHR + ' bpm' + (p.maxhr ? '' : ' (est.)')} : null,
       p.city   ? {label:'City',   value: p.city}             : null,
     ].filter(Boolean);
     profEl.innerHTML = badges.length
@@ -1407,6 +1468,7 @@ async function pushActivitiesToBackend(activities, token) {
           age:      prof.age     || null,
           height:   prof.height  || null,
           level:    prof.level   || null,
+          maxhr:    prof.maxhr   || null,
           sex:      athlete.sex  || null,
           city:     athlete.city || null,
           country:  athlete.country || null,
@@ -1436,16 +1498,26 @@ function openProfileModal() {
   document.getElementById('profile-height').value = p.height || '';
   document.getElementById('profile-weight').value = p.weight || stravaWeight || '';
   document.getElementById('profile-level').value  = p.level  || '';
-  // Show hint if Strava has no weight
-  const weightInput = document.getElementById('profile-weight');
-  weightInput.title = stravaWeight
-    ? 'Pre-filled from your Strava profile'
-    : 'Not found on Strava — enter manually';
+  document.getElementById('profile-maxhr').value  = p.maxhr  || '';
+  updateMaxHRHint();
   document.getElementById('profile-save-msg').textContent = '';
   document.getElementById('profile-modal').style.display = 'flex';
 }
 function closeProfileModal() {
   document.getElementById('profile-modal').style.display = 'none';
+}
+function updateMaxHRHint() {
+  const age   = parseInt(document.getElementById('profile-age').value) || null;
+  const maxhr = parseInt(document.getElementById('profile-maxhr').value) || null;
+  const hint  = document.getElementById('maxhr-hint');
+  if (!hint) return;
+  if (maxhr) {
+    hint.textContent = `Using ${maxhr} bpm`;
+  } else if (age) {
+    hint.textContent = `220 − ${age} = ${220 - age} bpm (formula)`;
+  } else {
+    hint.textContent = 'Fixed thresholds (no age or max HR)';
+  }
 }
 
 async function saveProfile() {
@@ -1454,6 +1526,7 @@ async function saveProfile() {
     height: parseInt(document.getElementById('profile-height').value)   || null,
     weight: parseFloat(document.getElementById('profile-weight').value) || REF_STATE.athlete?.weight || null,
     level:  document.getElementById('profile-level').value              || null,
+    maxhr:  parseInt(document.getElementById('profile-maxhr').value)    || null,
   };
   REF_STATE.profile = p;
   saveStoredProfile(p);
