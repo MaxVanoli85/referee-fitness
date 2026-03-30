@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v11</title>
+<title>Referee Fitness v12</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v11</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -346,7 +346,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v11</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -361,7 +361,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <p id="coach-sub">Loading…</p>
     </div>
 
-    <div class="coach-controls" id="coach-month-controls"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+      <div id="coach-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
+      <div class="coach-controls" id="coach-month-controls" style="margin-bottom:0;"></div>
+    </div>
 
     <div class="referee-grid" id="referee-grid"></div>
 
@@ -374,6 +381,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               <div class="detail-title" id="detail-name">—</div>
             </div>
             <div class="detail-sub" id="detail-sub">—</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+              <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            </div>
             <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
@@ -416,7 +427,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v11</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -430,7 +441,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <h1>Squad summary</h1>
       <p id="caf-sub">Loading…</p>
     </div>
-    <div class="coach-controls" id="caf-month-controls"></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+      <div id="caf-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
+      <div class="coach-controls" id="caf-month-controls" style="margin-bottom:0;"></div>
+    </div>
 
     <!-- Referee list -->
     <div id="caf-referee-list"></div>
@@ -1446,6 +1464,19 @@ function selectReferee(id) {
   document.getElementById('detail-section').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+function selectDetailSeason(key) {
+  COACH_STATE.detailSeason = key;
+  // Update month to first available in this season for this referee
+  const ref = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
+  if (!ref) return;
+  const seasonMonths = getSeasonMonths(key);
+  const dataMonths = new Set((ref.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const fbMonths = new Set(Object.keys(ref.feedback||{}));
+  const valid = seasonMonths.filter(m => dataMonths.has(m) || fbMonths.has(m));
+  COACH_STATE.selectedMonth = valid[0] || COACH_STATE.selectedMonth;
+  renderDetail();
+}
+
 function closeDetail() {
   COACH_STATE.selectedReferee=null;
   document.getElementById('detail-section').style.display='none';
@@ -1490,6 +1521,20 @@ function renderDetail() {
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
   renderCats('detail-cats',s.categories,s.catBreakdown);
+  // Season selector in detail panel
+  if (document.getElementById('detail-season-selector')) {
+    const refSeasons = availableSeasons(ref.activities||[]);
+    const curS = getSeasonKey();
+    if (!refSeasons.includes(curS)) refSeasons.unshift(curS);
+    if (!COACH_STATE.detailSeason || !refSeasons.includes(COACH_STATE.detailSeason))
+      COACH_STATE.detailSeason = refSeasons[0] || curS;
+    document.getElementById('detail-season-selector').innerHTML = refSeasons.map(k => `
+      <button onclick="selectDetailSeason('${k}')"
+        style="padding:3px 9px;border-radius:var(--radius-sm);border:1px solid ${k===COACH_STATE.detailSeason?'var(--orange-border)':'var(--border)'};background:${k===COACH_STATE.detailSeason?'var(--orange-dim)':'none'};color:${k===COACH_STATE.detailSeason?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:11px;font-family:inherit;">
+        ${getSeasonLabel(k)}
+      </button>`).join('');
+  }
+
   // Render feedback
   if (document.getElementById('detail-feedback-content')) {
     renderFeedbackSection('detail-feedback-content', ref, month);
@@ -1501,10 +1546,16 @@ function renderDetail() {
   renderFeed('detail-feed', actsForMonth((COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee)||{activities:[]}).activities||[], COACH_STATE.selectedMonth)||[]);
 }
 
-function selectCoachMonth(key) {
-  COACH_STATE.selectedMonth=key;
+function selectCoachSeason(key) {
+  _coachSelectedSeason = key;
+  COACH_STATE.selectedMonth = null;
   renderCoachDashboard();
-  if(COACH_STATE.selectedReferee) renderDetail();
+}
+
+function selectCoachMonth(key) {
+  COACH_STATE.selectedMonth = key;
+  renderCoachDashboard();
+  if (COACH_STATE.selectedReferee) renderDetail();
 }
 
 async function syncAll() {
@@ -1919,6 +1970,16 @@ function showPinScreen(role) {
   showScreen('pin');
 }
 
+function selectCafSeason(key) {
+  _cafSelectedSeason = key;
+  COACH_STATE.selectedMonth = null;
+  renderCAFDashboard();
+}
+function selectCafMonth(key) {
+  COACH_STATE.selectedMonth = key;
+  renderCAFDashboard();
+}
+
 function cafLogout() {
   sessionStorage.removeItem('coach_pin');
   sessionStorage.removeItem('coach_role');
@@ -1961,12 +2022,23 @@ function renderCAFDashboard() {
 
   const allActs = refs.flatMap(r => r.activities||[]);
   const feedbackMonths = refs.flatMap(r => Object.keys(r.feedback||{}));
-  const allMonths = [...new Set([...availableMonths(allActs), ...feedbackMonths])].sort().reverse().slice(0,6);
-  if (allMonths.length) {
-    document.getElementById('caf-month-controls').innerHTML =
-      allMonths.map(k => `<button class="month-btn ${k===month?'active':''}"
-        onclick="COACH_STATE.selectedMonth='${k}';renderCAFDashboard()">${getMonthLabel(k)}</button>`).join('');
+
+  if (!_cafSelectedSeason) _cafSelectedSeason = getSeasonKey();
+
+  const seasonMonths = getSeasonMonths(_cafSelectedSeason);
+  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const allFbMonths = new Set(feedbackMonths);
+  const validMonths = seasonMonths.filter(m => dataMonths.has(m) || allFbMonths.has(m));
+  if (!COACH_STATE.selectedMonth || !validMonths.includes(COACH_STATE.selectedMonth)) {
+    COACH_STATE.selectedMonth = validMonths[0] || null;
   }
+
+  renderSeasonMonthSelectors(
+    'caf-season-selector', 'caf-month-controls',
+    allActs, feedbackMonths,
+    _cafSelectedSeason, COACH_STATE.selectedMonth,
+    'selectCafSeason', 'selectCafMonth', null
+  );
 
 
 
@@ -2218,6 +2290,49 @@ function renderRefMonthSelector(allActs) {
 // Kept for coach detail panel season (simplified)
 function renderSeasonSummary(selectorId, statsId, catsId, allActs, profile) {}
 function selectSeason(selectorId, statsId, catsId, seasonKey) {}
+
+// ── Shared season/month selector for coach + CAF ──────────────────────────
+let _coachSelectedSeason = null;
+let _cafSelectedSeason   = null;
+
+function renderSeasonMonthSelectors(seasonElId, monthElId, allActs, feedbackMonths, selectedSeason, selectedMonth, onSeasonClick, onMonthClick, onSync) {
+  // Build season list from activities + feedback months
+  const actSeasons = availableSeasons(allActs);
+  const fbSeasons  = [...new Set(feedbackMonths.map(m => {
+    const [y, mo] = m.split('-').map(Number);
+    return getSeasonKey(new Date(y, mo - 1, 1));
+  }))];
+  const curSeason = getSeasonKey();
+  const allSeasons = [...new Set([...actSeasons, ...fbSeasons, curSeason])].sort().reverse();
+
+  // Season selector
+  const seasonEl = document.getElementById(seasonElId);
+  if (seasonEl) {
+    seasonEl.innerHTML = allSeasons.map(k => `
+      <button onclick="${onSeasonClick}('${k}')"
+        style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid ${k===selectedSeason?'var(--orange-border)':'var(--border)'};background:${k===selectedSeason?'var(--orange-dim)':'none'};color:${k===selectedSeason?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:12px;font-family:inherit;">
+        ${getSeasonLabel(k)}
+      </button>`).join('');
+  }
+
+  // Month selector — only months in selected season that have data or feedback
+  const seasonMonths = getSeasonMonths(selectedSeason);
+  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const allFbMonths  = new Set(feedbackMonths);
+  const visibleMonths = seasonMonths.filter(m => dataMonths.has(m) || allFbMonths.has(m));
+
+  const monthEl = document.getElementById(monthElId);
+  if (monthEl) {
+    if (!visibleMonths.length) {
+      monthEl.innerHTML = '<span style="font-size:12px;color:var(--faint)">No data this season.</span>';
+    } else {
+      const syncBtn = onSync ? `<button class="sync-btn" onclick="${onSync}()"><svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.1-3.45l-1.9 1.9V2h4.5l-1.85.35z"/></svg>Sync</button>` : '';
+      monthEl.innerHTML = visibleMonths.map(k =>
+        `<button class="month-btn ${k===selectedMonth?'active':''}" onclick="${onMonthClick}('${k}')">${getMonthLabel(k)}</button>`
+      ).join('') + syncBtn;
+    }
+  }
+}
 
 // ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
