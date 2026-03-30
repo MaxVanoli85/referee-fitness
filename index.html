@@ -1813,12 +1813,14 @@ async function saveFeedback() {
     notes:          document.getElementById('fb-notes').value,
   };
   try {
+    console.log('[feedback] refereeId='+_feedbackRefereeId+' monthKey='+_feedbackMonthKey+' pin='+COACH_STATE.pin);
     const res = await fetch(`${BACKEND_URL}/coach/feedback`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Coach-Pin':COACH_STATE.pin},
       body: JSON.stringify({ refereeId: _feedbackRefereeId, monthKey: _feedbackMonthKey, feedback })
     });
-    if (!res.ok) throw new Error('Save failed');
+    const respData = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(respData.error || 'Save failed (status ' + res.status + ')');
     // Update local state
     const ref = COACH_STATE.referees.find(r => r.id === _feedbackRefereeId);
     if (ref) {
