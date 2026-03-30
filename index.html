@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v9</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v10</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -288,9 +288,31 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="ref-profile-fields" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:6px;"></div>
       </div>
     </div>
-    <div class="coach-controls" id="ref-month-controls"></div>
+    <!-- Season selector (primary) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+      <div id="ref-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <button class="sync-btn" style="margin-left:auto" onclick="resyncRef()">
+        <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.1-3.45l-1.9 1.9V2h4.5l-1.85.35z"/></svg>
+        Sync
+      </button>
+    </div>
+
+    <!-- Season stats + category breakdown -->
+    <div id="ref-season-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;">
+      <div id="ref-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem;"></div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Categories this season</div>
+      <div id="ref-season-cats"></div>
+    </div>
+
+    <!-- Month selector within season -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
+      <div class="coach-controls" id="ref-month-controls" style="margin-bottom:0"></div>
+    </div>
+
     <!-- Weekly feeling row -->
-    <div id="weekly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.5rem;">
+    <div id="weekly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.25rem;">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">How did this week feel overall?</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;" id="weekly-feeling-btns"></div>
     </div>
@@ -313,17 +335,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="ref-recovery"></div></div>
       <div class="panel"><div class="panel-title">Recent activities</div><div id="ref-feed"></div></div>
     </div>
-    <!-- Season summary -->
-    <div id="ref-season-section" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-top:1rem;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;">Season summary</div>
-        <div id="ref-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-      </div>
-      <div id="ref-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem;"></div>
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Training categories</div>
-      <div id="ref-season-cats"></div>
-    </div>
-
     <!-- Coach feedback for referee -->
     <div id="ref-feedback-section" style="display:none;background:var(--bg2);border:1px solid var(--orange-border);border-radius:var(--radius);padding:1.25rem;margin-top:1rem;">
       <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Coach report</div>
@@ -335,7 +346,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v9</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v10</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -391,17 +402,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="panel"><div class="panel-title">Recent activities</div><div id="detail-feed"></div></div>
         </div>
       </div>
-      <!-- Season summary in detail panel -->
-      <div class="panel" style="margin-top:1rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px;">
-          <div class="panel-title" style="margin-bottom:0">Season summary</div>
-          <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
-        </div>
-        <div id="detail-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;"></div>
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Training categories</div>
-        <div id="detail-season-cats"></div>
-      </div>
-      <!-- Coach feedback display -->
+      <!-- Coach feedback display (per month) -->
       <div class="panel" style="margin-top:1rem">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="panel-title" style="margin-bottom:0">Coach feedback</div>
@@ -415,7 +416,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v9</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v10</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1310,22 +1311,13 @@ function renderRefDashboard() {
   }
   document.getElementById('ref-name').textContent = athlete?`${athlete.firstname} ${athlete.lastname}`:'Athlete';
 
-  const months = availableMonths(REF_STATE.activities);
-  if(!months.length){
-    document.getElementById('ref-page-title').textContent='No activities found';
-    document.getElementById('ref-page-sub').textContent='No Strava activities in the last 6 months.';
-    document.getElementById('ref-month-controls').innerHTML='';
-    document.getElementById('ref-stats-grid').innerHTML='<div class="empty-state">Sync some workouts on Strava first.</div>';
-    ['ref-cat-list','ref-hr-zones','ref-load-chart','ref-recovery','ref-feed'].forEach(id=>document.getElementById(id).innerHTML='');
-    return;
-  }
-  if(!REF_STATE.selectedMonth||!months.includes(REF_STATE.selectedMonth)) REF_STATE.selectedMonth=months[0];
-  renderMonthControls('ref-month-controls', months, REF_STATE.selectedMonth, 'selectRefMonth', 'resyncRef');
+
   // Restore RPE and feelings from storage
   try { if (!REF_STATE.rpe) REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) {}
   try { if (!REF_STATE.weeklyFeelings) REF_STATE.weeklyFeelings = JSON.parse(sessionStorage.getItem('weekly_feelings')||'{}'); } catch(e) {}
+  // Season is now primary — renders month selector inside
+  renderRefSeasonSelector(REF_STATE.activities || []);
   renderWeeklyFeelingBar();
-  renderRefMonth();
 }
 
 function renderRefMonth() {
@@ -1346,11 +1338,16 @@ function renderRefMonth() {
   renderFeed('ref-feed', actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth)||[]);
   // Load and show coach feedback for this month
   loadRefereeFeedback(REF_STATE.selectedMonth);
-  // Render season summary
-  renderSeasonSummary('ref-season-selector','ref-season-stats','ref-season-cats', REF_STATE.activities||[], REF_STATE.profile||null);
 }
 
-function selectRefMonth(key) { REF_STATE.selectedMonth=key; renderRefDashboard(); }
+function selectRefMonth(key) {
+  REF_STATE.selectedMonth = key;
+  // Update month button active state without full re-render
+  document.querySelectorAll('#ref-month-controls .month-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === getMonthLabel(key));
+  });
+  renderRefMonth();
+}
 async function resyncRef() {
   if(!REF_STATE.token) return;
   setLoading('Syncing…');
@@ -1497,8 +1494,7 @@ function renderDetail() {
   if (document.getElementById('detail-feedback-content')) {
     renderFeedbackSection('detail-feedback-content', ref, month);
   }
-  // Render season summary
-  renderSeasonSummary('detail-season-selector','detail-season-stats','detail-season-cats', ref.activities||[], ref.profile||null);
+
   renderZones('detail-zones',s.zones);
   renderLoad('detail-load',s.weeks);
   renderRecovery('detail-recovery',s);
@@ -2108,31 +2104,50 @@ function availableSeasons(acts) {
 }
 
 // ── Season summary renderer ────────────────────────────────────────────────
-function renderSeasonSummary(selectorId, statsId, catsId, allActs, profile) {
+let _refSelectedSeason = null;
+
+function getSeasonMonths(seasonKey) {
+  // Returns month keys (YYYY-MM) that fall within this season
+  const { start, end } = getSeasonBounds(seasonKey);
+  const months = [];
+  const d = new Date(start);
+  while (d <= end) {
+    months.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+    d.setMonth(d.getMonth() + 1);
+  }
+  return months.reverse(); // most recent first
+}
+
+function renderRefSeasonSelector(allActs) {
   const seasons = availableSeasons(allActs);
-  if (!seasons.length) {
-    const sel = document.getElementById(selectorId);
-    if (sel) sel.innerHTML = '<span style="font-size:11px;color:var(--faint)">No season data yet</span>';
-    return;
+  // Also include current season even if no data yet
+  const curSeason = getSeasonKey();
+  if (!seasons.includes(curSeason)) seasons.unshift(curSeason);
+
+  if (!_refSelectedSeason || !seasons.includes(_refSelectedSeason)) {
+    _refSelectedSeason = seasons[0];
   }
 
-  // Store selected season per container
-  const storeKey = 'season_' + selectorId;
-  let sel = window[storeKey] || seasons[0];
-  if (!seasons.includes(sel)) sel = seasons[0];
-
-  // Render season selector buttons
-  const selEl = document.getElementById(selectorId);
-  if (selEl) {
-    selEl.innerHTML = seasons.map(k => `
-      <button onclick="selectSeason('${selectorId}','${statsId}','${catsId}','${k}')"
-        style="padding:3px 10px;border-radius:var(--radius-sm);border:1px solid ${k===sel?'var(--orange-border)':'var(--border)'};background:${k===sel?'var(--orange-dim)':'none'};color:${k===sel?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:11px;font-family:inherit;">
+  const el = document.getElementById('ref-season-selector');
+  if (el) {
+    el.innerHTML = seasons.map(k => `
+      <button onclick="selectRefSeason('${k}')"
+        style="padding:4px 12px;border-radius:var(--radius-sm);border:1px solid ${k===_refSelectedSeason?'var(--orange-border)':'var(--border)'};background:${k===_refSelectedSeason?'var(--orange-dim)':'none'};color:${k===_refSelectedSeason?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:12px;font-family:inherit;">
         ${getSeasonLabel(k)}
       </button>`).join('');
   }
+  renderRefSeasonStats(allActs);
+  renderRefMonthSelector(allActs);
+}
 
-  // Compute season stats
-  const acts = actsForSeason(allActs, sel);
+function selectRefSeason(key) {
+  _refSelectedSeason = key;
+  const acts = REF_STATE.activities || [];
+  renderRefSeasonSelector(acts);
+}
+
+function renderRefSeasonStats(allActs) {
+  const acts = actsForSeason(allActs, _refSelectedSeason);
   const RUN_TYPES = ['Run','TrailRun','VirtualRun'];
   const totalSessions = acts.length;
   const totalRunKm = +(acts.filter(a=>RUN_TYPES.includes(a.type)||RUN_TYPES.includes(a.sport_type))
@@ -2140,21 +2155,18 @@ function renderSeasonSummary(selectorId, statsId, catsId, allActs, profile) {
   const totalMins = Math.round(acts.filter(a=>!EXCLUDE_FROM_LOAD.includes(a.type)&&!EXCLUDE_FROM_LOAD.includes(a.sport_type))
     .reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
   const h = Math.floor(totalMins/60), m = totalMins%60;
-
-  // Count matches
   const matches = acts.filter(a=>getCategory(a).key==='match').length;
 
-  // Render season stats
-  const statsEl = document.getElementById(statsId);
+  const statsEl = document.getElementById('ref-season-stats');
   if (statsEl) {
     statsEl.innerHTML = `
       <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">full season</div></div>
       <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:11px;color:var(--muted)">h</span>${m}<span style="font-size:11px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
       <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${totalRunKm}<span style="font-size:11px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
-      <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value">${matches}</div><div class="stat-sub">total officiated</div></div>`;
+      <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value">${matches}</div><div class="stat-sub">officiated</div></div>`;
   }
 
-  // Render category breakdown
+  // Category breakdown
   const catMap = {};
   acts.forEach(a => {
     const c = getCategory(a);
@@ -2165,35 +2177,47 @@ function renderSeasonSummary(selectorId, statsId, catsId, allActs, profile) {
   const cats = Object.values(catMap).sort((a,b)=>b.count-a.count);
   const maxCount = Math.max(...cats.map(c=>c.count),1);
   const totalCount = cats.reduce((s,c)=>s+c.count,0)||1;
-
-  // Stacked bar
   const stackedBar = cats.length ? `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px;gap:1px">
     ${cats.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}x"></div>`).join('')}
   </div>` : '';
-
-  const catsEl = document.getElementById(catsId);
+  const catsEl = document.getElementById('ref-season-cats');
   if (catsEl) {
     catsEl.innerHTML = stackedBar + (cats.length ? cats.map(c=>`
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
         <span style="font-size:13px;width:20px;text-align:center">${c.icon}</span>
-        <span style="font-size:12px;color:var(--text);flex:1;">${c.label}</span>
+        <span style="font-size:12px;color:var(--text);flex:1">${c.label}</span>
         <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:28px;text-align:right">${c.count}x</span>
-        <div style="width:100px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+        <div style="width:90px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
           <div style="width:${Math.round(c.count/maxCount*100)}%;height:100%;background:${c.color};border-radius:2px"></div>
         </div>
         <span style="font-size:11px;color:var(--faint);width:28px;text-align:right">${Math.round(c.count/totalCount*100)}%</span>
-        <span style="font-size:11px;color:var(--faint);width:36px;text-align:right">${c.mins}min</span>
+        <span style="font-size:11px;color:var(--faint);width:40px;text-align:right">${c.mins}min</span>
       </div>`).join('') : '<div style="font-size:12px;color:var(--faint)">No activities this season.</div>');
   }
 }
 
-function selectSeason(selectorId, statsId, catsId, seasonKey) {
-  window['season_' + selectorId] = seasonKey;
-  // Find the right allActs source
-  const ref = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
-  const allActs = ref ? ref.activities||[] : REF_STATE.activities||[];
-  renderSeasonSummary(selectorId, statsId, catsId, allActs, REF_STATE.profile||null);
+function renderRefMonthSelector(allActs) {
+  // Show only months within the selected season that have data or feedback
+  const seasonMonths = getSeasonMonths(_refSelectedSeason);
+  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const visibleMonths = seasonMonths.filter(m => dataMonths.has(m));
+  if (!visibleMonths.length) {
+    document.getElementById('ref-month-controls').innerHTML =
+      '<span style="font-size:12px;color:var(--faint)">No activities this season yet.</span>';
+    return;
+  }
+  if (!REF_STATE.selectedMonth || !visibleMonths.includes(REF_STATE.selectedMonth)) {
+    REF_STATE.selectedMonth = visibleMonths[0];
+  }
+  document.getElementById('ref-month-controls').innerHTML = visibleMonths.map(k => `
+    <button class="month-btn ${k===REF_STATE.selectedMonth?'active':''}" onclick="selectRefMonth('${k}')">${getMonthLabel(k)}</button>`
+  ).join('');
+  renderRefMonth();
 }
+
+// Kept for coach detail panel season (simplified)
+function renderSeasonSummary(selectorId, statsId, catsId, allActs, profile) {}
+function selectSeason(selectorId, statsId, catsId, seasonKey) {}
 
 // ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
