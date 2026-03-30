@@ -313,6 +313,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="ref-recovery"></div></div>
       <div class="panel"><div class="panel-title">Recent activities</div><div id="ref-feed"></div></div>
     </div>
+    <!-- Coach feedback for referee -->
+    <div id="ref-feedback-section" style="display:none;background:var(--bg2);border:1px solid var(--orange-border);border-radius:var(--radius);padding:1.25rem;margin-top:0.5rem;">
+      <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Coach report</div>
+      <div id="ref-feedback-content"></div>
+    </div>
   </div>
 </div>
 
@@ -404,8 +409,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <p id="caf-sub">Loading…</p>
     </div>
     <div class="coach-controls" id="caf-month-controls"></div>
-    <!-- Squad fitness summary cards -->
-    <div id="caf-summary-cards" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;"></div>
+
     <!-- Referee list -->
     <div id="caf-referee-list"></div>
   </div>
@@ -1319,6 +1323,8 @@ function renderRefMonth() {
   renderLoad('ref-load-chart',s.weeks);
   renderRecovery('ref-recovery',s);
   renderFeed('ref-feed', actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth)||[]);
+  // Load and show coach feedback for this month
+  loadRefereeFeedback(REF_STATE.selectedMonth);
 }
 
 function selectRefMonth(key) { REF_STATE.selectedMonth=key; renderRefDashboard(); }
@@ -1716,22 +1722,30 @@ function getWeekKey(date) {
   return mon.toISOString().slice(0,10);
 }
 
-function renderRPEButtons(containerId, currentVal, onSelect) {
+// Global handlers for RPE and feeling buttons (avoids toString() anti-pattern)
+let _rpeActId = null;
+let _feelingWeekKey = null;
+function _onRpeClick(val) { if (_rpeActId) saveRPE(_rpeActId, val); }
+function _onFeelingClick(val) { if (_feelingWeekKey) saveWeeklyFeeling(_feelingWeekKey, val); }
+
+function renderRPEButtons(containerId, currentVal, actId) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  _rpeActId = actId;
   el.innerHTML = RPE_OPTIONS.map(o => `
-    <button onclick="(${onSelect.toString()})(${o.value})"
+    <button onclick="_onRpeClick(${o.value})"
       style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:var(--radius);border:1px solid ${o.value===currentVal?'var(--orange)':'var(--border)'};background:${o.value===currentVal?'var(--orange-dim)':'none'};cursor:pointer;font-family:inherit;transition:all 0.15s;">
       <span style="font-size:20px">${o.icon}</span>
       <span style="font-size:10px;color:${o.value===currentVal?'var(--orange)':'var(--muted)'}">${o.label}</span>
     </button>`).join('');
 }
 
-function renderFeelingButtons(containerId, currentVal, onSelect) {
+function renderFeelingButtons(containerId, currentVal, weekKey) {
   const el = document.getElementById(containerId);
   if (!el) return;
+  _feelingWeekKey = weekKey;
   el.innerHTML = FEELING_OPTIONS.map(o => `
-    <button onclick="(${onSelect.toString()})(${o.value})"
+    <button onclick="_onFeelingClick(${o.value})"
       style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:var(--radius);border:1px solid ${o.value===currentVal?'var(--blue)':'var(--border)'};background:${o.value===currentVal?'var(--blue-dim)':'none'};cursor:pointer;font-family:inherit;transition:all 0.15s;">
       <span style="font-size:20px">${o.icon}</span>
       <span style="font-size:10px;color:${o.value===currentVal?'var(--blue)':'var(--muted)'}">${o.label}</span>
@@ -1780,7 +1794,7 @@ function renderWeeklyFeelingBar() {
   bar.style.display = 'block';
   const weekKey = getWeekKey();
   const cur = (REF_STATE.weeklyFeelings || {})[weekKey] || 0;
-  renderFeelingButtons('weekly-feeling-btns', cur, (v) => saveWeeklyFeeling(weekKey, v));
+  renderFeelingButtons('weekly-feeling-btns', cur, weekKey);
 }
 
 // ── Coach Feedback ──────────────────────────────────────────────────────────
@@ -1933,29 +1947,7 @@ function renderCAFDashboard() {
         onclick="COACH_STATE.selectedMonth='${k}';renderCAFDashboard()">${getMonthLabel(k)}</button>`).join('');
   }
 
-  // Squad-level summary cards
-  const allMonthActs = refs.flatMap(r => actsForMonth(r.activities||[], month));
-  const totalSessions = allMonthActs.length;
-  const avgLoad = refs.length
-    ? Math.round(refs.reduce((s,r) => {
-        const s2 = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
-        return s + s2.acuteLoad;
-      }, 0) / refs.filter(r=>r.connected).length || 1)
-    : 0;
-  const highRisk = refs.filter(r => {
-    const s = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
-    return s.ratio > 1.5;
-  }).length;
-  const moderate = refs.filter(r => {
-    const s = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
-    return s.ratio > 1.3 && s.ratio <= 1.5;
-  }).length;
 
-  document.getElementById('caf-summary-cards').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Total sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">squad this month</div></div>
-    <div class="stat-card"><div class="stat-label">Avg acute load</div><div class="stat-value">${avgLoad}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">connected referees</div></div>
-    <div class="stat-card"><div class="stat-label">High risk</div><div class="stat-value ${highRisk>0?'danger':'ok'}">${highRisk}</div><div class="stat-sub">A:C ratio > 1.5</div></div>
-    <div class="stat-card"><div class="stat-label">Moderate risk</div><div class="stat-value ${moderate>0?'warn':'ok'}">${moderate}</div><div class="stat-sub">A:C ratio 1.3–1.5</div></div>`;
 
   // Individual referee rows
   const AVATAR_COLORS_LOCAL = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
@@ -1997,6 +1989,42 @@ function renderCAFDashboard() {
       </div>` : `<div style="margin-top:8px;font-size:11px;color:var(--faint)">No coach report for this month.</div>`}
     </div>`;
   }).join('');
+}
+
+// ── Referee feedback loader ────────────────────────────────────────────────
+async function loadRefereeFeedback(monthKey) {
+  const section  = document.getElementById('ref-feedback-section');
+  const fbContent = document.getElementById('ref-feedback-content');
+  if (!section || !fbContent) return;
+  const athlete = REF_STATE.athlete;
+  if (!athlete) { section.style.display = 'none'; return; }
+  try {
+    const res = await fetch(`${BACKEND_URL}/referee/feedback?stravaId=${athlete.id}&monthKey=${monthKey}`);
+    if (!res.ok) { section.style.display = 'none'; return; }
+    const data = await res.json();
+    const fb = data.feedback;
+    if (!fb || (!fb.load && !fb.fitness && !fb.recommendation && !fb.notes)) {
+      section.style.display = 'none';
+      return;
+    }
+    section.style.display = 'block';
+    const rows = [
+      fb.load           ? {label:'Load assessment', value: fb.load}           : null,
+      fb.fitness        ? {label:'Fitness status',  value: fb.fitness}        : null,
+      fb.recommendation ? {label:'Recommendation',  value: fb.recommendation} : null,
+      fb.notes          ? {label:'Notes',           value: fb.notes}          : null,
+    ].filter(Boolean);
+    const updated = fb.updatedAt
+      ? new Date(fb.updatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+    fbContent.innerHTML = rows.map(r => `
+      <div style="padding:7px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">${r.label}</div>
+        <div style="font-size:13px;color:var(--text)">${r.value}</div>
+      </div>`).join('')
+      + (updated ? `<div style="font-size:10px;color:var(--faint);margin-top:6px">Reported ${updated}</div>` : '');
+  } catch(e) {
+    section.style.display = 'none';
+  }
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
