@@ -333,9 +333,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div id="detail-section" style="display:none">
       <div class="detail-panel">
         <div class="detail-header">
-          <div>
-            <div class="detail-title" id="detail-name">—</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <div id="detail-profile-pic" style="flex-shrink:0"></div>
+              <div class="detail-title" id="detail-name">—</div>
+            </div>
             <div class="detail-sub" id="detail-sub">—</div>
+            <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
           </div>
           <button class="close-detail" onclick="closeDetail()">✕ Close</button>
         </div>
@@ -1137,7 +1141,11 @@ function renderRefereeGrid() {
           <div>
             <div class="ref-name">${r.name}</div>
             <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
-            ${r.profile&&r.profile.weight?`<div style="font-size:10px;color:var(--faint)">${r.profile.weight}kg${r.profile.city?' · '+r.profile.city:''}</div>`:''}
+            ${(()=>{
+              const p=r.profile||{};
+              const bits=[p.age?p.age+'y':null,p.height?p.height+'cm':null,p.weight?p.weight+'kg':null,p.level||null].filter(Boolean);
+              return bits.length?`<div style="font-size:10px;color:var(--faint)">${bits.join(' · ')}</div>`:'';
+            })()}
           </div>
         </div>
         <div class="ref-stats">
@@ -1176,26 +1184,30 @@ function renderDetail() {
   const s = computeStats(acts, ref.activities||[]);
   document.getElementById('detail-name').textContent = ref.name;
   document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
-  // Profile badge in detail
+  // Profile picture
+  const picEl = document.getElementById('detail-profile-pic');
+  const p = ref.profile || {};
+  if (picEl) {
+    picEl.innerHTML = p.picture
+      ? `<img src="${p.picture}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--border2)" onerror="this.parentElement.innerHTML=''">`
+      : '';
+  }
+  // Profile fields badge
   const profEl = document.getElementById('detail-profile-badge');
   if (profEl) {
-    const p = ref.profile || {};
-    const fields = [
-      p.age    ? p.age + ' yrs'   : null,
-      p.height ? p.height + ' cm' : null,
-      p.weight ? p.weight + ' kg' : null,
-      p.level  || null,
-      p.city   || null,
+    const badges = [
+      p.age    ? {label:'Age',    value: p.age    + ' yrs'} : null,
+      p.height ? {label:'Height', value: p.height + ' cm'}  : null,
+      p.weight ? {label:'Weight', value: p.weight + ' kg'}  : null,
+      p.level  ? {label:'Level',  value: p.level}            : null,
+      p.city   ? {label:'City',   value: p.city}             : null,
     ].filter(Boolean);
-    if (fields.length) {
-      profEl.style.display = 'flex';
-      profEl.innerHTML = (p.picture
-        ? `<img src="${p.picture}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;margin-right:8px;border-radius:50%" onerror="this.style.display='none'">`
-        : '')
-        + fields.map(f => `<span style="font-size:12px;color:var(--muted);margin-right:12px">${f}</span>`).join('');
-    } else {
-      profEl.style.display = 'none';
-    }
+    profEl.innerHTML = badges.length
+      ? badges.map(b => `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;">
+          <span style="color:var(--muted)">${b.label}: </span>
+          <span style="color:var(--text);font-weight:500">${b.value}</span>
+        </div>`).join('')
+      : '<span style="font-size:11px;color:var(--faint)">No profile info yet</span>';
   }
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
