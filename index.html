@@ -1788,6 +1788,15 @@ let _feedbackRefereeId = null;
 let _feedbackMonthKey  = null;
 
 function openFeedbackModal(refereeId, refereeName, monthKey) {
+  // Fallback: use current month if monthKey is null
+  if (!monthKey) {
+    const now = new Date();
+    monthKey = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  }
+  if (!refereeId) {
+    alert('Please select a referee first.');
+    return;
+  }
   _feedbackRefereeId = refereeId;
   _feedbackMonthKey  = monthKey;
   document.getElementById('feedback-modal-name').textContent = refereeName;
@@ -1814,6 +1823,9 @@ async function saveFeedback() {
   };
   try {
     console.log('[feedback] refereeId='+_feedbackRefereeId+' monthKey='+_feedbackMonthKey+' pin='+COACH_STATE.pin);
+    if (!_feedbackRefereeId || !_feedbackMonthKey) {
+      throw new Error('No referee or month selected. Please close and reopen the feedback form.');
+    }
     const res = await fetch(`${BACKEND_URL}/coach/feedback`, {
       method:'POST',
       headers:{'Content-Type':'application/json','X-Coach-Pin':COACH_STATE.pin},
