@@ -225,11 +225,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <svg class="strava-svg" viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
       Connect as referee
     </button>
-    <button class="btn-secondary" onclick="showScreen('pin')">
+    <button class="btn-secondary" onclick="showPinScreen('coach')">
       Coach login →
     </button>
+    <button class="btn-secondary" onclick="showPinScreen('caf')" style="border-color:rgba(74,158,255,0.4);color:var(--blue)">
+      CAF login →
+    </button>
   </div>
-  <p class="auth-note">Referees connect their own Strava. Coaches use a PIN to view the squad dashboard.</p>
+  <p class="auth-note">Referees connect their Strava. Coaches and CAF members use a PIN.</p>
 </div>
 
 <div id="pin-screen" class="screen">
@@ -260,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v7</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v8</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -286,6 +289,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
     </div>
     <div class="coach-controls" id="ref-month-controls"></div>
+    <!-- Weekly feeling row -->
+    <div id="weekly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.5rem;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">How did this week feel overall?</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="weekly-feeling-btns"></div>
+    </div>
     <div class="stats-grid" id="ref-stats-grid"></div>
     <div class="two-col">
       <div class="panel">
@@ -311,7 +319,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v7</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v8</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -341,7 +349,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div class="detail-sub" id="detail-sub">—</div>
             <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
           </div>
-          <button class="close-detail" onclick="closeDetail()">✕ Close</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--orange-border);background:var(--orange-dim);color:var(--orange);cursor:pointer;font-size:12px;font-family:inherit"
+              onclick="openFeedbackModal(COACH_STATE.selectedReferee, document.getElementById('detail-name').textContent, COACH_STATE.selectedMonth)">
+              ✏ Feedback
+            </button>
+            <button class="close-detail" onclick="closeDetail()">✕ Close</button>
+          </div>
         </div>
         <div class="stats-grid" id="detail-stats"></div>
         <div class="two-col">
@@ -361,7 +375,39 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <div class="panel"><div class="panel-title">Recent activities</div><div id="detail-feed"></div></div>
         </div>
       </div>
+      <!-- Coach feedback display -->
+      <div class="panel" style="margin-top:1rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="panel-title" style="margin-bottom:0">Coach feedback</div>
+        </div>
+        <div id="detail-feedback-content"></div>
+      </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
+<div id="caf-dashboard" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v8</span></div>
+    <div class="topbar-right">
+      <div class="topbar-pill">
+        <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
+        <span>Committee view</span>
+      </div>
+      <button class="btn-ghost" onclick="cafLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-header">
+      <h1>Squad summary</h1>
+      <p id="caf-sub">Loading…</p>
+    </div>
+    <div class="coach-controls" id="caf-month-controls"></div>
+    <!-- Squad fitness summary cards -->
+    <div id="caf-summary-cards" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.5rem;"></div>
+    <!-- Referee list -->
+    <div id="caf-referee-list"></div>
   </div>
 </div>
 
@@ -382,6 +428,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div id="panel-sprints-section" style="margin-bottom:1.25rem;">
       <div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Sprint efforts</div>
       <div id="panel-sprints"></div>
+    </div>
+    <!-- RPE section -->
+    <div style="margin-bottom:1.25rem;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">How did this session feel?</div>
+      <div id="panel-rpe-btns" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+      <div id="panel-rpe-saved" style="font-size:11px;color:var(--green);margin-top:6px;min-height:14px;"></div>
+    </div>
+    <!-- Coach feedback section -->
+    <div id="panel-coach-feedback" style="display:none;margin-bottom:1.25rem;">
+      <div style="font-size:10px;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Coach feedback</div>
+      <div id="panel-coach-feedback-content"></div>
     </div>
   </div>
 </div>
@@ -444,6 +501,58 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="modal-btns">
       <button onclick="copyInviteLink()">Copy link</button>
       <button class="primary" onclick="closeInviteModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COACH FEEDBACK MODAL ═══════════════════════════════════════ -->
+<div id="feedback-modal" class="modal-overlay" style="display:none">
+  <div class="modal" style="max-width:520px">
+    <h3>Coach feedback — <span id="feedback-modal-name"></span></h3>
+    <p id="feedback-modal-period" style="font-size:12px;color:var(--muted);margin-bottom:1rem;margin-top:-4px"></p>
+
+    <!-- Template sections -->
+    <div style="display:grid;gap:10px;margin-bottom:1rem;">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Load assessment</div>
+        <select id="fb-load" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
+          <option value="">Select…</option>
+          <option value="Underloaded — increase training volume">Underloaded — increase training volume</option>
+          <option value="Well balanced — maintain current load">Well balanced — maintain current load</option>
+          <option value="Slightly elevated — monitor closely">Slightly elevated — monitor closely</option>
+          <option value="Overloaded — reduce intensity this week">Overloaded — reduce intensity this week</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Fitness status</div>
+        <select id="fb-fitness" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
+          <option value="">Select…</option>
+          <option value="Excellent — peak condition">Excellent — peak condition</option>
+          <option value="Good — on track">Good — on track</option>
+          <option value="Satisfactory — room for improvement">Satisfactory — room for improvement</option>
+          <option value="Below expectations — action required">Below expectations — action required</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Recommendation</div>
+        <select id="fb-recommendation" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
+          <option value="">Select…</option>
+          <option value="Continue current programme">Continue current programme</option>
+          <option value="Add one high intensity session per week">Add one high intensity session per week</option>
+          <option value="Focus on endurance base this month">Focus on endurance base this month</option>
+          <option value="Rest week recommended">Rest week recommended</option>
+          <option value="Individual meeting recommended">Individual meeting recommended</option>
+        </select>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Additional notes</div>
+        <textarea id="fb-notes" placeholder="Free text notes…" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);resize:vertical;min-height:80px;"></textarea>
+      </div>
+    </div>
+    <div id="fb-save-msg" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button onclick="closeFeedbackModal()">Cancel</button>
+      <button class="primary" onclick="saveFeedback()">Save feedback</button>
     </div>
   </div>
 </div>
@@ -573,7 +682,7 @@ let COACH_STATE = {pin:null,referees:[],selectedMonth:null,selectedReferee:null}
 // ── Screen manager ─────────────────────────────────────────────────────
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const map = {auth:'auth-screen',pin:'pin-screen',loading:'loading-screen',error:'error-screen',dashboard:'dashboard',coach:'coach-dashboard'};
+  const map = {auth:'auth-screen',pin:'pin-screen',loading:'loading-screen',error:'error-screen',dashboard:'dashboard',coach:'coach-dashboard',caf:'caf-dashboard'};
   const el = document.getElementById(map[name] || name);
   if (el) el.classList.add('active');
 }
@@ -590,10 +699,16 @@ async function submitPin() {
     const res = await fetch(`${BACKEND_URL}/coach/login`, {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({pin})
     });
-    if (res.ok) {
+    const data = await res.json().catch(()=>({}));
+    if (res.ok && data.ok) {
       COACH_STATE.pin = pin;
       sessionStorage.setItem('coach_pin', pin);
-      await loadCoachDashboard();
+      sessionStorage.setItem('coach_role', data.role || _pinRole);
+      if (data.role === 'caf' || _pinRole === 'caf') {
+        await loadCAFDashboard();
+      } else {
+        await loadCoachDashboard();
+      }
     } else {
       showScreen('pin');
       document.getElementById('pin-error').textContent = 'Wrong PIN. Try again.';
@@ -1181,6 +1296,10 @@ function renderRefDashboard() {
   }
   if(!REF_STATE.selectedMonth||!months.includes(REF_STATE.selectedMonth)) REF_STATE.selectedMonth=months[0];
   renderMonthControls('ref-month-controls', months, REF_STATE.selectedMonth, 'selectRefMonth', 'resyncRef');
+  // Restore RPE and feelings from storage
+  try { if (!REF_STATE.rpe) REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) {}
+  try { if (!REF_STATE.weeklyFeelings) REF_STATE.weeklyFeelings = JSON.parse(sessionStorage.getItem('weekly_feelings')||'{}'); } catch(e) {}
+  renderWeeklyFeelingBar();
   renderRefMonth();
 }
 
@@ -1345,6 +1464,10 @@ function renderDetail() {
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
   renderCats('detail-cats',s.categories,s.catBreakdown);
+  // Render feedback
+  if (document.getElementById('detail-feedback-content')) {
+    renderFeedbackSection('detail-feedback-content', ref, month);
+  }
   renderZones('detail-zones',s.zones);
   renderLoad('detail-load',s.weeks);
   renderRecovery('detail-recovery',s);
@@ -1570,6 +1693,290 @@ function renderProfileBanner() {
     : `<div style="font-size:12px;color:var(--faint)">No profile info yet — click "Edit profile" to add.</div>`;
 }
 
+
+// ── RPE & Weekly Feeling ───────────────────────────────────────────────────
+const RPE_OPTIONS = [
+  {value:1, icon:'😴', label:'Very easy'},
+  {value:2, icon:'😊', label:'Easy'},
+  {value:3, icon:'😐', label:'Medium'},
+  {value:4, icon:'😓', label:'Hard'},
+  {value:5, icon:'🥵', label:'Very hard'},
+];
+const FEELING_OPTIONS = [
+  {value:1, icon:'😴', label:'Exhausted'},
+  {value:2, icon:'😕', label:'Tired'},
+  {value:3, icon:'😊', label:'Good'},
+  {value:4, icon:'💪', label:'Great'},
+  {value:5, icon:'🔥', label:'Peak'},
+];
+
+function getWeekKey(date) {
+  const d = new Date(date || Date.now());
+  const mon = new Date(d); mon.setDate(d.getDate() - ((d.getDay()+6)%7));
+  return mon.toISOString().slice(0,10);
+}
+
+function renderRPEButtons(containerId, currentVal, onSelect) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = RPE_OPTIONS.map(o => `
+    <button onclick="(${onSelect.toString()})(${o.value})"
+      style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:var(--radius);border:1px solid ${o.value===currentVal?'var(--orange)':'var(--border)'};background:${o.value===currentVal?'var(--orange-dim)':'none'};cursor:pointer;font-family:inherit;transition:all 0.15s;">
+      <span style="font-size:20px">${o.icon}</span>
+      <span style="font-size:10px;color:${o.value===currentVal?'var(--orange)':'var(--muted)'}">${o.label}</span>
+    </button>`).join('');
+}
+
+function renderFeelingButtons(containerId, currentVal, onSelect) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = FEELING_OPTIONS.map(o => `
+    <button onclick="(${onSelect.toString()})(${o.value})"
+      style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:var(--radius);border:1px solid ${o.value===currentVal?'var(--blue)':'var(--border)'};background:${o.value===currentVal?'var(--blue-dim)':'none'};cursor:pointer;font-family:inherit;transition:all 0.15s;">
+      <span style="font-size:20px">${o.icon}</span>
+      <span style="font-size:10px;color:${o.value===currentVal?'var(--blue)':'var(--muted)'}">${o.label}</span>
+    </button>`).join('');
+}
+
+async function saveRPE(activityId, rpe) {
+  const athlete = REF_STATE.athlete;
+  if (!athlete) return;
+  // Save locally
+  if (!REF_STATE.rpe) REF_STATE.rpe = {};
+  REF_STATE.rpe[String(activityId)] = rpe;
+  try { sessionStorage.setItem('rpe_data', JSON.stringify(REF_STATE.rpe)); } catch(e) {}
+  // Push to backend
+  try {
+    await fetch(`${BACKEND_URL}/referee/rpe`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ stravaId: athlete.id, activityId: String(activityId), rpe })
+    });
+  } catch(e) { console.log('RPE save error:', e.message); }
+  // Re-render buttons with new selection
+  const cur = REF_STATE.rpe[String(activityId)] || 0;
+  renderRPEButtons('panel-rpe-btns', cur, (v) => saveRPE(activityId, v));
+  document.getElementById('panel-rpe-saved').textContent = 'Saved!';
+  setTimeout(() => { const el = document.getElementById('panel-rpe-saved'); if(el) el.textContent=''; }, 2000);
+}
+
+async function saveWeeklyFeeling(weekKey, feeling) {
+  const athlete = REF_STATE.athlete;
+  if (!athlete) return;
+  if (!REF_STATE.weeklyFeelings) REF_STATE.weeklyFeelings = {};
+  REF_STATE.weeklyFeelings[weekKey] = feeling;
+  try { sessionStorage.setItem('weekly_feelings', JSON.stringify(REF_STATE.weeklyFeelings)); } catch(e) {}
+  try {
+    await fetch(`${BACKEND_URL}/referee/weekly-feeling`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ stravaId: athlete.id, weekKey, feeling })
+    });
+  } catch(e) {}
+  renderWeeklyFeelingBar();
+}
+
+function renderWeeklyFeelingBar() {
+  const bar = document.getElementById('weekly-feeling-bar');
+  if (!bar) return;
+  bar.style.display = 'block';
+  const weekKey = getWeekKey();
+  const cur = (REF_STATE.weeklyFeelings || {})[weekKey] || 0;
+  renderFeelingButtons('weekly-feeling-btns', cur, (v) => saveWeeklyFeeling(weekKey, v));
+}
+
+// ── Coach Feedback ──────────────────────────────────────────────────────────
+let _feedbackRefereeId = null;
+let _feedbackMonthKey  = null;
+
+function openFeedbackModal(refereeId, refereeName, monthKey) {
+  _feedbackRefereeId = refereeId;
+  _feedbackMonthKey  = monthKey;
+  document.getElementById('feedback-modal-name').textContent = refereeName;
+  document.getElementById('feedback-modal-period').textContent = getMonthLabel(monthKey);
+  const ref = COACH_STATE.referees.find(r => r.id === refereeId);
+  const existing = ref?.feedback?.[monthKey] || {};
+  document.getElementById('fb-load').value           = existing.load           || '';
+  document.getElementById('fb-fitness').value        = existing.fitness        || '';
+  document.getElementById('fb-recommendation').value = existing.recommendation || '';
+  document.getElementById('fb-notes').value          = existing.notes          || '';
+  document.getElementById('fb-save-msg').textContent = '';
+  document.getElementById('feedback-modal').style.display = 'flex';
+}
+function closeFeedbackModal() {
+  document.getElementById('feedback-modal').style.display = 'none';
+}
+
+async function saveFeedback() {
+  const feedback = {
+    load:           document.getElementById('fb-load').value,
+    fitness:        document.getElementById('fb-fitness').value,
+    recommendation: document.getElementById('fb-recommendation').value,
+    notes:          document.getElementById('fb-notes').value,
+  };
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/feedback`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Coach-Pin':COACH_STATE.pin},
+      body: JSON.stringify({ refereeId: _feedbackRefereeId, monthKey: _feedbackMonthKey, feedback })
+    });
+    if (!res.ok) throw new Error('Save failed');
+    // Update local state
+    const ref = COACH_STATE.referees.find(r => r.id === _feedbackRefereeId);
+    if (ref) {
+      if (!ref.feedback) ref.feedback = {};
+      ref.feedback[_feedbackMonthKey] = { ...feedback, updatedAt: new Date().toISOString() };
+    }
+    document.getElementById('fb-save-msg').textContent = 'Feedback saved!';
+    setTimeout(() => { closeFeedbackModal(); renderDetail(); }, 800);
+  } catch(e) {
+    document.getElementById('fb-save-msg').textContent = 'Error: ' + e.message;
+  }
+}
+
+function renderFeedbackSection(containerId, ref, monthKey) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const fb = ref?.feedback?.[monthKey];
+  if (!fb) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--faint)">No feedback yet for this month.</div>';
+    return;
+  }
+  const rows = [
+    fb.load           ? {label:'Load',           value:fb.load}           : null,
+    fb.fitness        ? {label:'Fitness',         value:fb.fitness}        : null,
+    fb.recommendation ? {label:'Recommendation',  value:fb.recommendation} : null,
+    fb.notes          ? {label:'Notes',           value:fb.notes}          : null,
+  ].filter(Boolean);
+  const updated = fb.updatedAt ? new Date(fb.updatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
+  el.innerHTML = rows.map(r=>`
+    <div style="padding:7px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">${r.label}</div>
+      <div style="font-size:13px;color:var(--text)">${r.value}</div>
+    </div>`).join('')
+    + (updated ? `<div style="font-size:10px;color:var(--faint);margin-top:6px">Last updated ${updated}</div>` : '');
+}
+
+// ── Helpers for PIN screen ─────────────────────────────────────────────────
+let _pinRole = 'coach';
+function showPinScreen(role) {
+  _pinRole = role || 'coach';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').textContent = '';
+  const h2 = document.querySelector('#pin-screen .pin-box h2');
+  const p  = document.querySelector('#pin-screen .pin-box p');
+  if (h2) h2.textContent = role === 'caf' ? 'CAF login' : 'Coach login';
+  if (p)  p.textContent  = role === 'caf'
+    ? 'Enter your CAF PIN to access the committee dashboard.'
+    : 'Enter your coach PIN to access the squad dashboard.';
+  showScreen('pin');
+}
+
+function cafLogout() {
+  sessionStorage.removeItem('coach_pin');
+  sessionStorage.removeItem('coach_role');
+  COACH_STATE = {pin:null, referees:[], selectedMonth:null, selectedReferee:null};
+  showScreen('auth');
+}
+
+// ── CAF Dashboard ──────────────────────────────────────────────────────────
+async function loadCAFDashboard() {
+  setLoading('Loading squad summary…');
+  try {
+    const res = await fetch(`${BACKEND_URL}/caf/summary`, {
+      headers:{'X-Coach-Pin': COACH_STATE.pin}
+    });
+    if (!res.ok) throw new Error('Could not load data');
+    const data = await res.json();
+    COACH_STATE.referees = data.referees || [];
+    const allActs = COACH_STATE.referees.flatMap(r => r.activities||[]);
+    const months  = availableMonths(allActs);
+    if (!COACH_STATE.selectedMonth || !months.includes(COACH_STATE.selectedMonth))
+      COACH_STATE.selectedMonth = months[0] || null;
+    showScreen('caf');
+    renderCAFDashboard();
+  } catch(e) { showError(e.message); }
+}
+
+function renderCAFDashboard() {
+  const month = COACH_STATE.selectedMonth;
+  const refs  = COACH_STATE.referees;
+  const connected = refs.filter(r => r.connected).length;
+  document.getElementById('caf-sub').textContent =
+    `${connected} of ${refs.length} referees connected · ${getMonthLabel(month)}`;
+
+  const allActs = refs.flatMap(r => r.activities||[]);
+  const months  = availableMonths(allActs);
+  if (months.length) {
+    document.getElementById('caf-month-controls').innerHTML =
+      months.map(k => `<button class="month-btn ${k===month?'active':''}"
+        onclick="COACH_STATE.selectedMonth='${k}';renderCAFDashboard()">${getMonthLabel(k)}</button>`).join('');
+  }
+
+  // Squad-level summary cards
+  const allMonthActs = refs.flatMap(r => actsForMonth(r.activities||[], month));
+  const totalSessions = allMonthActs.length;
+  const avgLoad = refs.length
+    ? Math.round(refs.reduce((s,r) => {
+        const s2 = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
+        return s + s2.acuteLoad;
+      }, 0) / refs.filter(r=>r.connected).length || 1)
+    : 0;
+  const highRisk = refs.filter(r => {
+    const s = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
+    return s.ratio > 1.5;
+  }).length;
+  const moderate = refs.filter(r => {
+    const s = computeStats(actsForMonth(r.activities||[], month), r.activities||[]);
+    return s.ratio > 1.3 && s.ratio <= 1.5;
+  }).length;
+
+  document.getElementById('caf-summary-cards').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Total sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">squad this month</div></div>
+    <div class="stat-card"><div class="stat-label">Avg acute load</div><div class="stat-value">${avgLoad}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">connected referees</div></div>
+    <div class="stat-card"><div class="stat-label">High risk</div><div class="stat-value ${highRisk>0?'danger':'ok'}">${highRisk}</div><div class="stat-sub">A:C ratio > 1.5</div></div>
+    <div class="stat-card"><div class="stat-label">Moderate risk</div><div class="stat-value ${moderate>0?'warn':'ok'}">${moderate}</div><div class="stat-sub">A:C ratio 1.3–1.5</div></div>`;
+
+  // Individual referee rows
+  const AVATAR_COLORS_LOCAL = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
+  document.getElementById('caf-referee-list').innerHTML = refs.map((r,i) => {
+    const acts = actsForMonth(r.activities||[], month);
+    const s    = computeStats(acts, r.activities||[]);
+    const rc   = s.ratio>1.5?'var(--red)':s.ratio>1.3?'var(--amber)':'var(--green)';
+    const color = AVATAR_COLORS_LOCAL[i % AVATAR_COLORS_LOCAL.length];
+    const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+    const p = r.profile || {};
+    const fb = r.feedback?.[month];
+    const feelingThisWeek = Object.entries(r.weeklyFeelings||{})
+      .sort((a,b)=>b[0].localeCompare(a[0]))[0];
+    const feelingIcon = feelingThisWeek
+      ? (FEELING_OPTIONS.find(f=>f.value===feelingThisWeek[1])||{icon:'—'}).icon : '—';
+
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        ${p.picture
+          ? `<img src="${p.picture}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0">`
+          : `<div style="width:40px;height:40px;border-radius:50%;background:${color}22;border:1px solid ${color}55;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:${color};flex-shrink:0">${initials}</div>`}
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:14px;font-weight:500;color:var(--text)">${r.name}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">${p.level||''}${p.age?' · '+p.age+'y':''}</div>
+        </div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Sessions</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace">${s.totalSessions}</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Run km</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace">${s.totalRunKm}</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">A:C ratio</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace;color:${rc}">${s.ratio||'—'}</div></div>
+          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Feeling</div><div style="font-size:20px">${feelingIcon}</div></div>
+        </div>
+      </div>
+      ${fb ? `<div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Coach report</div>
+        ${fb.load?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Load: ${fb.load}</div>`:''}
+        ${fb.fitness?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Fitness: ${fb.fitness}</div>`:''}
+        ${fb.recommendation?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Recommendation: ${fb.recommendation}</div>`:''}
+        ${fb.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">"${fb.notes}"</div>`:''}
+      </div>` : `<div style="margin-top:8px;font-size:11px;color:var(--faint)">No coach report for this month.</div>`}
+    </div>`;
+  }).join('');
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────
 async function boot() {
   const params = new URLSearchParams(window.location.search);
@@ -1613,9 +2020,11 @@ async function boot() {
   }
 
   // Check saved coach PIN
-  const savedPin = (() => { try { return sessionStorage.getItem('coach_pin'); } catch(e) { return null; } })();
+  const savedPin  = (() => { try { return sessionStorage.getItem('coach_pin'); } catch(e) { return null; } })();
+  const savedRole = (() => { try { return sessionStorage.getItem('coach_role'); } catch(e) { return null; } })();
   if(savedPin) {
     COACH_STATE.pin = savedPin;
+    if (savedRole === 'caf') { await loadCAFDashboard(); return; }
     await loadCoachDashboard();
     return;
   }
