@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v14</title>
+<title>Referee Fitness v15</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v15</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -305,9 +305,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 
     <!-- Weekly feeling -->
-    <div id="weekly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.25rem;">
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">How did this week feel overall?</div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="weekly-feeling-btns"></div>
+    <div id="monthly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.25rem;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">How did this month feel overall?</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;" id="monthly-feeling-btns"></div>
     </div>
 
     <!-- Monthly summary -->
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v15</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -442,7 +442,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v15</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1347,14 +1347,14 @@ function renderRefDashboard() {
 
   // Restore RPE and feelings from storage
   try { if (!REF_STATE.rpe) REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) {}
-  try { if (!REF_STATE.weeklyFeelings) REF_STATE.weeklyFeelings = JSON.parse(sessionStorage.getItem('weekly_feelings')||'{}'); } catch(e) {}
+  try { if (!REF_STATE.monthlyFeelings) REF_STATE.monthlyFeelings = JSON.parse(sessionStorage.getItem('monthly_feelings')||'{}'); } catch(e) {}
   // Season is now primary — renders month selector inside
   renderRefSeasonSelector(REF_STATE.activities || []);
-  renderWeeklyFeelingBar();
 }
 
 function renderRefMonth() {
   if(!REF_STATE.selectedMonth) return;
+  renderMonthlyFeelingBar();
   const acts = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
   const s = computeStats(acts, REF_STATE.activities);
   const name = REF_STATE.athlete?`${REF_STATE.athlete.firstname} ${REF_STATE.athlete.lastname}`:'Athlete';
@@ -1475,6 +1475,7 @@ function renderRefereeGrid() {
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
           <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
+          <div class="ref-stat">Feeling<br><span style="font-size:18px">${(()=>{const v=(r.monthlyFeelings||{})[month]||0;return v?(FEELING_OPTIONS.find(f=>f.value===v)||{icon:'—'}).icon:'—';})()}</span></div>
         </div>
         ${s.totalSessions>0 ? `<div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
           ${Object.values(s.catBreakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}"></div>`).join('')}
@@ -1561,7 +1562,10 @@ function renderDetail() {
   const acts = month ? actsForMonth(ref.activities||[], month) : [];
   const s = computeStats(acts, ref.activities||[]);
   document.getElementById('detail-name').textContent = ref.name;
-  document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions`;
+  const feelingValDetail = (ref.monthlyFeelings||{})[month] || 0;
+  const feelingIconDetail = feelingValDetail ? (FEELING_OPTIONS.find(f=>f.value===feelingValDetail)||{icon:''}).icon : '';
+  const feelingLabelDetail = feelingValDetail ? (FEELING_OPTIONS.find(f=>f.value===feelingValDetail)||{label:''}).label : '';
+  document.getElementById('detail-sub').textContent = `${getMonthLabel(month)} · ${s.totalSessions} sessions${feelingIconDetail?' · '+feelingIconDetail+' '+feelingLabelDetail:''}`;
   // Profile picture
   const picEl = document.getElementById('detail-profile-pic');
   const p = ref.profile || {};
@@ -1875,7 +1879,7 @@ function getWeekKey(date) {
 let _rpeActId = null;
 let _feelingWeekKey = null;
 function _onRpeClick(val) { if (_rpeActId) saveRPE(_rpeActId, val); }
-function _onFeelingClick(val) { if (_feelingWeekKey) saveWeeklyFeeling(_feelingWeekKey, val); }
+function _onFeelingClick(val) { if (_feelingWeekKey) saveMonthlyFeeling(_feelingWeekKey, val); }
 
 function renderRPEButtons(containerId, currentVal, actId) {
   const el = document.getElementById(containerId);
@@ -1925,25 +1929,26 @@ async function saveRPE(activityId, rpe) {
 async function saveWeeklyFeeling(weekKey, feeling) {
   const athlete = REF_STATE.athlete;
   if (!athlete) return;
-  if (!REF_STATE.weeklyFeelings) REF_STATE.weeklyFeelings = {};
-  REF_STATE.weeklyFeelings[weekKey] = feeling;
-  try { sessionStorage.setItem('weekly_feelings', JSON.stringify(REF_STATE.weeklyFeelings)); } catch(e) {}
+  if (!REF_STATE.monthlyFeelings) REF_STATE.monthlyFeelings = {};
+  REF_STATE.monthlyFeelings[weekKey] = feeling;
+  try { sessionStorage.setItem('monthly_feelings', JSON.stringify(REF_STATE.monthlyFeelings)); } catch(e) {}
   try {
-    await fetch(`${BACKEND_URL}/referee/weekly-feeling`, {
+    await fetch(`${BACKEND_URL}/referee/monthly-feeling`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ stravaId: athlete.id, weekKey, feeling })
     });
   } catch(e) {}
-  renderWeeklyFeelingBar();
+  renderMonthlyFeelingBar();
 }
 
-function renderWeeklyFeelingBar() {
-  const bar = document.getElementById('weekly-feeling-bar');
+function renderMonthlyFeelingBar() {
+  const bar = document.getElementById('monthly-feeling-bar');
   if (!bar) return;
   bar.style.display = 'block';
-  const weekKey = getWeekKey();
-  const cur = (REF_STATE.weeklyFeelings || {})[weekKey] || 0;
-  renderFeelingButtons('weekly-feeling-btns', cur, weekKey);
+  const monthKey = REF_STATE.selectedMonth || getMonthKey(new Date());
+  const cur = (REF_STATE.monthlyFeelings || {})[monthKey] || 0;
+  _feelingWeekKey = monthKey; // reuse the global — now stores monthKey
+  renderFeelingButtons('monthly-feeling-btns', cur, monthKey);
 }
 
 // ── Coach Feedback ──────────────────────────────────────────────────────────
@@ -2129,10 +2134,9 @@ function renderCAFDashboard() {
     const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
     const p = r.profile || {};
     const fb = r.feedback?.[month];
-    const feelingThisWeek = Object.entries(r.weeklyFeelings||{})
-      .sort((a,b)=>b[0].localeCompare(a[0]))[0];
-    const feelingIcon = feelingThisWeek
-      ? (FEELING_OPTIONS.find(f=>f.value===feelingThisWeek[1])||{icon:'—'}).icon : '—';
+    const feelingVal = (r.monthlyFeelings||{})[month] || 0;
+    const feelingIcon = feelingVal
+      ? (FEELING_OPTIONS.find(f=>f.value===feelingVal)||{icon:'—'}).icon : '—';
 
     return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
