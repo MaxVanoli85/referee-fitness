@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v13</title>
+<title>Referee Fitness v14</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -442,7 +442,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v14</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1416,16 +1416,30 @@ async function loadCoachDashboard() {
 function renderCoachDashboard() {
   const connected = COACH_STATE.referees.filter(r=>r.connected).length;
   const total = COACH_STATE.referees.length;
-  document.getElementById('coach-sub').textContent=`${connected} of ${total} referees connected`;
+  document.getElementById('coach-sub').textContent = `${connected} of ${total} referees connected`;
 
-  const allActs = COACH_STATE.referees.flatMap(r=>r.activities||[]);
-  const months = availableMonths(allActs);
-  if(months.length) {
-    renderMonthControls('coach-month-controls', months, COACH_STATE.selectedMonth, 'selectCoachMonth', 'syncAll');
-  } else {
-    document.getElementById('coach-month-controls').innerHTML=`<button class="sync-btn" onclick="syncAll()">Sync all</button>`;
+  const allActs        = COACH_STATE.referees.flatMap(r=>r.activities||[]);
+  const feedbackMonths = COACH_STATE.referees.flatMap(r=>Object.keys(r.feedback||{}));
+
+  // Init selected season to current if not set
+  if (!_coachSelectedSeason) _coachSelectedSeason = getSeasonKey();
+
+  // Find valid months in selected season
+  const seasonMonths = getSeasonMonths(_coachSelectedSeason);
+  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const fbMonthSet   = new Set(feedbackMonths);
+  const validMonths  = seasonMonths.filter(m => dataMonths.has(m) || fbMonthSet.has(m));
+
+  if (!COACH_STATE.selectedMonth || !validMonths.includes(COACH_STATE.selectedMonth)) {
+    COACH_STATE.selectedMonth = validMonths[0] || null;
   }
 
+  renderSeasonMonthSelectors(
+    'coach-season-selector', 'coach-month-controls',
+    allActs, feedbackMonths,
+    _coachSelectedSeason, COACH_STATE.selectedMonth,
+    'selectCoachSeason', 'selectCoachMonth', 'syncAll'
+  );
   renderRefereeGrid();
 }
 
