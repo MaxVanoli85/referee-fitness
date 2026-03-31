@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v12</title>
+<title>Referee Fitness v13</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -288,9 +288,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="ref-profile-fields" style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:6px;"></div>
       </div>
     </div>
-    <!-- Season selector (primary) -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+    <!-- Season tabs -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.6rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Season</span>
       <div id="ref-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       <button class="sync-btn" style="margin-left:auto" onclick="resyncRef()">
         <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor"><path d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.1-3.45l-1.9 1.9V2h4.5l-1.85.35z"/></svg>
@@ -298,24 +298,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </button>
     </div>
 
-    <!-- Season stats + category breakdown -->
-    <div id="ref-season-panel" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1.25rem;">
-      <div id="ref-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem;"></div>
-      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Categories this season</div>
-      <div id="ref-season-cats"></div>
+    <!-- Month subtabs -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Month</span>
+      <div class="coach-controls" id="ref-month-controls" style="margin-bottom:0;"></div>
     </div>
 
-    <!-- Month selector within season -->
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
-      <div class="coach-controls" id="ref-month-controls" style="margin-bottom:0"></div>
-    </div>
-
-    <!-- Weekly feeling row -->
+    <!-- Weekly feeling -->
     <div id="weekly-feeling-bar" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:0.9rem 1.25rem;margin-bottom:1.25rem;">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;">How did this week feel overall?</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;" id="weekly-feeling-btns"></div>
     </div>
+
+    <!-- Monthly summary -->
     <div class="stats-grid" id="ref-stats-grid"></div>
     <div class="two-col">
       <div class="panel">
@@ -326,7 +321,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <div id="ref-override-list"></div>
       </div>
       <div class="panel">
-        <div class="panel-title">Heart rate zones</div><div id="ref-hr-zones"></div>
+        <div class="panel-title">Heart rate zones</div>
+        <div id="ref-hr-zones"></div>
         <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
         <div class="load-chart" id="ref-load-chart"></div>
       </div>
@@ -335,99 +331,28 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="ref-recovery"></div></div>
       <div class="panel"><div class="panel-title">Recent activities</div><div id="ref-feed"></div></div>
     </div>
-    <!-- Coach feedback for referee -->
-    <div id="ref-feedback-section" style="display:none;background:var(--bg2);border:1px solid var(--orange-border);border-radius:var(--radius);padding:1.25rem;margin-top:1rem;">
+
+    <!-- Coach feedback (per month) -->
+    <div id="ref-feedback-section" style="display:none;background:var(--bg2);border:1px solid var(--orange-border);border-radius:var(--radius);padding:1.25rem;margin-top:0.5rem;">
       <div style="font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Coach report</div>
       <div id="ref-feedback-content"></div>
     </div>
-  </div>
-</div>
 
-<!-- ═══ COACH DASHBOARD ══════════════════════════════════════════════════ -->
-<div id="coach-dashboard" class="screen">
-  <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
-    <div class="topbar-right">
-      <div class="topbar-pill">
-        <div class="pill-dot coach-dot">CO</div>
-        <span>Coach view</span>
-      </div>
-      <button class="btn-ghost" onclick="coachLogout()">Logout</button>
-    </div>
-  </div>
-  <div class="main">
-    <div class="page-header">
-      <h1>Squad overview</h1>
-      <p id="coach-sub">Loading…</p>
+    <!-- Season summary (below monthly) -->
+    <div style="margin-top:1.5rem;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;">Season summary — <span id="ref-season-label"></span></div>
+      <div id="ref-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1rem;"></div>
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Categories this season</div>
+      <div id="ref-season-cats"></div>
     </div>
 
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.75rem;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
-      <div id="coach-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
-      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
-      <div class="coach-controls" id="coach-month-controls" style="margin-bottom:0;"></div>
-    </div>
-
-    <div class="referee-grid" id="referee-grid"></div>
-
-    <div id="detail-section" style="display:none">
-      <div class="detail-panel">
-        <div class="detail-header">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-              <div id="detail-profile-pic" style="flex-shrink:0"></div>
-              <div class="detail-title" id="detail-name">—</div>
-            </div>
-            <div class="detail-sub" id="detail-sub">—</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
-              <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
-            </div>
-            <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <button style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--orange-border);background:var(--orange-dim);color:var(--orange);cursor:pointer;font-size:12px;font-family:inherit"
-              onclick="openFeedbackModal(COACH_STATE.selectedReferee, document.getElementById('detail-name').textContent, COACH_STATE.selectedMonth)">
-              ✏ Feedback
-            </button>
-            <button class="close-detail" onclick="closeDetail()">✕ Close</button>
-          </div>
-        </div>
-        <div class="stats-grid" id="detail-stats"></div>
-        <div class="two-col">
-          <div class="panel">
-            <div class="panel-title">Training categories</div>
-            <div class="cat-legend" id="detail-cat-legend"></div>
-            <div id="detail-cats"></div>
-          </div>
-          <div class="panel">
-            <div class="panel-title">Heart rate zones</div><div id="detail-zones"></div>
-            <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
-            <div class="load-chart" id="detail-load"></div>
-          </div>
-        </div>
-        <div class="two-col">
-          <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="detail-recovery"></div></div>
-          <div class="panel"><div class="panel-title">Recent activities</div><div id="detail-feed"></div></div>
-        </div>
-      </div>
-      <!-- Coach feedback display (per month) -->
-      <div class="panel" style="margin-top:1rem">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div class="panel-title" style="margin-bottom:0">Coach feedback</div>
-        </div>
-        <div id="detail-feedback-content"></div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v12</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1464,6 +1389,48 @@ function selectReferee(id) {
   document.getElementById('detail-section').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+function renderDetailSeasonSummary(ref, seasonKey) {
+  const acts = actsForSeason(ref.activities||[], seasonKey);
+  const RUN_TYPES = ['Run','TrailRun','VirtualRun'];
+  const totalSessions = acts.length;
+  const totalRunKm = +(acts.filter(a=>RUN_TYPES.includes(a.type)||RUN_TYPES.includes(a.sport_type))
+    .reduce((s,a)=>s+(a.distance||0),0)/1000).toFixed(1);
+  const totalMins = Math.round(acts.filter(a=>!EXCLUDE_FROM_LOAD.includes(a.type)&&!EXCLUDE_FROM_LOAD.includes(a.sport_type))
+    .reduce((s,a)=>s+(a.moving_time||a.elapsed_time||0),0)/60);
+  const h = Math.floor(totalMins/60), m = totalMins%60;
+  const matches = acts.filter(a=>getCategory(a).key==='match').length;
+
+  const statsEl = document.getElementById('detail-season-stats');
+  if (statsEl) statsEl.innerHTML = `
+    <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">full season</div></div>
+    <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:11px;color:var(--muted)">h</span>${m}<span style="font-size:11px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
+    <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${totalRunKm}<span style="font-size:11px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
+    <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value">${matches}</div><div class="stat-sub">officiated</div></div>`;
+
+  const catMap = {};
+  acts.forEach(a => {
+    const c = getCategory(a);
+    if (!catMap[c.key]) catMap[c.key] = {...c, count:0, mins:0};
+    catMap[c.key].count++;
+    catMap[c.key].mins += Math.round((a.moving_time||a.elapsed_time||0)/60);
+  });
+  const cats = Object.values(catMap).sort((a,b)=>b.count-a.count);
+  const maxC = Math.max(...cats.map(c=>c.count),1);
+  const totC = cats.reduce((s,c)=>s+c.count,0)||1;
+  const bar = cats.length ? `<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:10px;gap:1px">${cats.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>` : '';
+  const catsEl = document.getElementById('detail-season-cats');
+  if (catsEl) catsEl.innerHTML = bar + (cats.length ? cats.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+      <span style="font-size:13px;width:18px;text-align:center">${c.icon}</span>
+      <span style="font-size:12px;color:var(--text);flex:1">${c.label}</span>
+      <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:28px;text-align:right">${c.count}x</span>
+      <div style="width:80px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
+        <div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color};border-radius:2px"></div>
+      </div>
+      <span style="font-size:11px;color:var(--faint);width:28px;text-align:right">${Math.round(c.count/totC*100)}%</span>
+    </div>`).join('') : '<div style="font-size:12px;color:var(--faint)">No data this season.</div>');
+}
+
 function selectDetailSeason(key) {
   COACH_STATE.detailSeason = key;
   // Update month to first available in this season for this referee
@@ -1539,6 +1506,12 @@ function renderDetail() {
   if (document.getElementById('detail-feedback-content')) {
     renderFeedbackSection('detail-feedback-content', ref, month);
   }
+
+  // Season summary at bottom
+  if (!COACH_STATE.detailSeason) COACH_STATE.detailSeason = getSeasonKey();
+  const labelEl2 = document.getElementById('detail-season-label');
+  if (labelEl2) labelEl2.textContent = getSeasonLabel(COACH_STATE.detailSeason);
+  renderDetailSeasonSummary(ref, COACH_STATE.detailSeason);
 
   renderZones('detail-zones',s.zones);
   renderLoad('detail-load',s.weeks);
@@ -2229,6 +2202,8 @@ function renderRefSeasonStats(allActs) {
   const h = Math.floor(totalMins/60), m = totalMins%60;
   const matches = acts.filter(a=>getCategory(a).key==='match').length;
 
+  const labelEl = document.getElementById('ref-season-label');
+  if (labelEl) labelEl.textContent = getSeasonLabel(_refSelectedSeason);
   const statsEl = document.getElementById('ref-season-stats');
   if (statsEl) {
     statsEl.innerHTML = `
