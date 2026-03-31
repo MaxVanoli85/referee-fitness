@@ -349,6 +349,96 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 </div>
 
+<!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
+<div id="coach-dashboard" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v13</span></div>
+    <div class="topbar-right">
+      <div class="topbar-pill">
+        <div class="pill-dot coach-dot">CO</div>
+        <span>Coach view</span>
+      </div>
+      <button class="btn-ghost" onclick="coachLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="main">
+    <div class="page-header">
+      <h1>Squad overview</h1>
+      <p id="coach-sub">Loading…</p>
+    </div>
+
+    <!-- Season tabs -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:0.6rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Season</span>
+      <div id="coach-season-selector" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+    </div>
+    <!-- Month subtabs -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Month</span>
+      <div class="coach-controls" id="coach-month-controls" style="margin-bottom:0;"></div>
+    </div>
+
+    <div class="referee-grid" id="referee-grid"></div>
+
+    <div id="detail-section" style="display:none">
+      <div class="detail-panel">
+        <div class="detail-header">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+              <div id="detail-profile-pic" style="flex-shrink:0"></div>
+              <div class="detail-title" id="detail-name">—</div>
+            </div>
+            <div class="detail-sub" id="detail-sub">—</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+              <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            </div>
+            <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--orange-border);background:var(--orange-dim);color:var(--orange);cursor:pointer;font-size:12px;font-family:inherit"
+              onclick="openFeedbackModal(COACH_STATE.selectedReferee, document.getElementById('detail-name').textContent, COACH_STATE.selectedMonth)">
+              ✏ Feedback
+            </button>
+            <button class="close-detail" onclick="closeDetail()">✕ Close</button>
+          </div>
+        </div>
+        <div class="stats-grid" id="detail-stats"></div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-title">Training categories</div>
+            <div class="cat-legend" id="detail-cat-legend"></div>
+            <div id="detail-cats"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">Heart rate zones</div><div id="detail-zones"></div>
+            <div class="panel-title" style="margin-top:1rem">Weekly load (min)</div>
+            <div class="load-chart" id="detail-load"></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="panel"><div class="panel-title">Recovery &amp; overtraining risk</div><div id="detail-recovery"></div></div>
+          <div class="panel"><div class="panel-title">Recent activities</div><div id="detail-feed"></div></div>
+        </div>
+        <!-- Coach feedback (per month) -->
+        <div class="panel" style="margin-top:1rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div class="panel-title" style="margin-bottom:0">Coach feedback</div>
+          </div>
+          <div id="detail-feedback-content"></div>
+        </div>
+        <!-- Season summary (bottom) -->
+        <div class="panel" style="margin-top:1rem">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;">Season summary — <span id="detail-season-label"></span></div>
+          <div id="detail-season-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px;"></div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Categories this season</div>
+          <div id="detail-season-cats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
