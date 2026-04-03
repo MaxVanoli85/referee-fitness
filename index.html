@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v18</title>
+<title>Referee Fitness v19</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v18</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v18</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -392,6 +392,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
               <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
               <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
+              <div id="detail-month-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
             </div>
             <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
           </div>
@@ -446,7 +450,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v18</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1607,6 +1611,16 @@ function renderDetailSeasonSummary(ref, seasonKey) {
     </div>`).join('') : '<div style="font-size:12px;color:var(--faint)">No data this season.</div>');
 }
 
+function selectDetailMonth(key) {
+  COACH_STATE.selectedMonth = key;
+  // Sync card month too
+  if (COACH_STATE.selectedReferee) {
+    if (!COACH_STATE.refMonths) COACH_STATE.refMonths = {};
+    COACH_STATE.refMonths[COACH_STATE.selectedReferee] = key;
+  }
+  renderDetail();
+}
+
 function selectDetailSeason(key) {
   COACH_STATE.detailSeason = key;
   // Update month to first available in this season for this referee
@@ -1633,6 +1647,19 @@ function renderDetail() {
   const acts = month ? actsForMonth(ref.activities||[], month) : [];
   const s = computeStats(acts, ref.activities||[]);
   document.getElementById('detail-name').textContent = ref.name;
+
+  // Month selector in detail panel
+  const detailMonthEl = document.getElementById('detail-month-selector');
+  if (detailMonthEl) {
+    const allM = [...new Set((ref.activities||[]).filter(a=>a&&a.start_date)
+      .map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'))].sort().reverse().slice(0,12);
+    detailMonthEl.innerHTML = allM.map(k => `
+      <button onclick="selectDetailMonth('${k}')"
+        style="padding:2px 8px;border-radius:var(--radius-sm);border:1px solid ${k===month?'var(--orange-border)':'var(--border)'};background:${k===month?'var(--orange-dim)':'none'};color:${k===month?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:11px;font-family:inherit;">
+        ${getMonthLabel(k)}
+      </button>`).join('');
+  }
+
   const feelingValDetail = (ref.monthlyFeelings||{})[month] || 0;
   const feelingIconDetail = feelingValDetail ? (FEELING_OPTIONS.find(f=>f.value===feelingValDetail)||{icon:''}).icon : '';
   const feelingLabelDetail = feelingValDetail ? (FEELING_OPTIONS.find(f=>f.value===feelingValDetail)||{label:''}).label : '';
