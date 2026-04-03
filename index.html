@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v16</title>
+<title>Referee Fitness v17</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v16</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v17</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v16</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v17</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -442,7 +442,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v16</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v17</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -522,16 +522,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
         <input class="add-modal-input" type="number" id="profile-weight" placeholder="e.g. 75" min="40" max="150" style="margin-bottom:0">
       </div>
       <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Referee level</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Role &amp; level</div>
+        <select id="profile-role" onchange="updateLevelOptions()" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--radius-sm);margin-bottom:6px;">
+          <option value="">Select role…</option>
+          <option value="Referee">Referee</option>
+          <option value="Assistant Referee">Assistant Referee</option>
+        </select>
         <select id="profile-level" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:14px;padding:10px 12px;border-radius:var(--radius-sm);">
           <option value="">Select level…</option>
-          <option value="National">National</option>
-          <option value="BGL Ligue">BGL Ligue</option>
-          <option value="Promotion Honneur">Promotion Honneur</option>
-          <option value="D1">D1</option>
-          <option value="D2">D2</option>
-          <option value="D3">D3</option>
-          <option value="Regional">Regional</option>
         </select>
       </div>
       <div style="grid-column:1/-1">
@@ -1444,45 +1442,73 @@ function renderCoachDashboard() {
 }
 
 function renderRefereeGrid() {
-  const grid = document.getElementById('referee-grid');
   const month = COACH_STATE.selectedMonth;
+  const AVATAR_COLORS = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
 
-  grid.innerHTML = COACH_STATE.referees.map((r,i)=>{
-    const acts = month ? actsForMonth(r.activities||[], month) : [];
-    const s = computeStats(acts, r.activities||[]);
-    const rc = s.ratio>1.5?'var(--red)':s.ratio>1.2?'var(--amber)':'var(--green)';
-    const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
-    const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const syncAge = r.lastSync ? timeSince(r.lastSync) : 'never';
-    return `
-      <div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}" onclick="selectReferee('${r.id}')">
+  // Sort referees by role/level order, then name
+  const sorted = [...COACH_STATE.referees].sort((a, b) => {
+    const ka = getRoleLabel(a.profile||{});
+    const kb = getRoleLabel(b.profile||{});
+    const oa = LEVEL_ORDER[ka] !== undefined ? LEVEL_ORDER[ka] : 99;
+    const ob = LEVEL_ORDER[kb] !== undefined ? LEVEL_ORDER[kb] : 99;
+    if (oa !== ob) return oa - ob;
+    return a.name.localeCompare(b.name);
+  });
+
+  // Group by role/level label
+  const groups = {};
+  const groupOrder = [];
+  sorted.forEach((r, origIdx) => {
+    const lbl = getRoleLabel(r.profile||{}) || 'No level set';
+    if (!groups[lbl]) { groups[lbl] = []; groupOrder.push(lbl); }
+    groups[lbl].push({ r, origIdx: COACH_STATE.referees.indexOf(r) });
+  });
+
+  const grid = document.getElementById('referee-grid');
+  grid.innerHTML = groupOrder.map(lbl => {
+    const items = groups[lbl];
+    const cards = items.map(({ r, origIdx }) => {
+      const i   = origIdx;
+      const acts = month ? actsForMonth(r.activities||[], month) : [];
+      const s    = computeStats(acts, r.activities||[]);
+      const rc   = s.ratio>1.5?'var(--red)':s.ratio>1.3?'var(--amber)':'var(--green)';
+      const color = AVATAR_COLORS[i % AVATAR_COLORS.length];
+      const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+      const p = r.profile || {};
+      const feelingVal = (r.monthlyFeelings||{})[month] || 0;
+      const feelingIcon = feelingVal ? (FEELING_OPTIONS.find(f=>f.value===feelingVal)||{icon:'—'}).icon : '—';
+
+      return `<div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}" onclick="selectReferee('${r.id}')">
         <button class="ref-remove" onclick="event.stopPropagation();removeReferee('${r.id}')" title="Remove">✕</button>
         <div class="ref-card-top">
-          ${r.profile&&r.profile.picture
-            ? `<img src="${r.profile.picture}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0" onerror="this.style.display='none'">`
+          ${p.picture
+            ? `<img src="${p.picture}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0" onerror="this.style.display='none'">`
             : `<div class="ref-avatar" style="background:${color}22;border:1px solid ${color}55;color:${color}">${initials}</div>`}
           <div>
             <div class="ref-name">${r.name}</div>
             <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
-            ${(()=>{
-              const p=r.profile||{};
-              const bits=[p.age?p.age+'y':null,p.height?p.height+'cm':null,p.weight?p.weight+'kg':null,p.level||null].filter(Boolean);
-              return bits.length?`<div style="font-size:10px;color:var(--faint)">${bits.join(' · ')}</div>`:'';
-            })()}
           </div>
         </div>
         <div class="ref-stats">
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
           <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
-          <div class="ref-stat">Feeling<br><span style="font-size:18px">${(()=>{const v=(r.monthlyFeelings||{})[month]||0;return v?(FEELING_OPTIONS.find(f=>f.value===v)||{icon:'—'}).icon:'—';})()}</span></div>
+          <div class="ref-stat">Feeling<br><span style="font-size:18px">${feelingIcon}</span></div>
         </div>
         ${s.totalSessions>0 ? `<div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
           ${Object.values(s.catBreakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}"></div>`).join('')}
         </div>` : ''}
         ${!r.connected?`<button onclick="event.stopPropagation();showInviteForReferee('${r.id}','${r.name}')" style="margin-top:8px;width:100%;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px;border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-family:inherit">Invite →</button>`:''}
       </div>`;
-  }).join('') + `<button class="add-ref-card" onclick="openAddModal()">+ Add referee</button>`;
+    }).join('');
+
+    return `<div style="margin-bottom:1.5rem;">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);">
+        ${lbl} <span style="color:var(--faint);font-size:10px">(${items.length})</span>
+      </div>
+      <div class="referee-grid" style="margin-bottom:0">${cards}</div>
+    </div>`;
+  }).join('') + `<button class="add-ref-card" onclick="openAddModal()" style="margin-top:8px">+ Add referee</button>`;
 }
 
 function selectReferee(id) {
@@ -1582,7 +1608,7 @@ function renderDetail() {
       p.age    ? {label:'Age',    value: p.age    + ' yrs'} : null,
       p.height ? {label:'Height', value: p.height + ' cm'}  : null,
       p.weight ? {label:'Weight', value: p.weight + ' kg'}  : null,
-      p.level  ? {label:'Level',  value: p.level}            : null,
+      getRoleLabel(p) ? {label:'Role/Level', value: getRoleLabel(p)} : null,
       effMaxHR ? {label:'Max HR', value: effMaxHR + ' bpm' + (p.maxhr ? '' : ' (est.)')} : null,
       p.city   ? {label:'City',   value: p.city}             : null,
     ].filter(Boolean);
@@ -1779,8 +1805,10 @@ function openProfileModal() {
   document.getElementById('profile-age').value    = p.age    || '';
   document.getElementById('profile-height').value = p.height || '';
   document.getElementById('profile-weight').value = p.weight || stravaWeight || '';
-  document.getElementById('profile-level').value  = p.level  || '';
   document.getElementById('profile-maxhr').value  = p.maxhr  || '';
+  const roleEl = document.getElementById('profile-role');
+  if (roleEl) { roleEl.value = p.role || ''; updateLevelOptions(); }
+  document.getElementById('profile-level').value  = p.level  || '';
   updateMaxHRHint();
   document.getElementById('profile-save-msg').textContent = '';
   document.getElementById('profile-modal').style.display = 'flex';
@@ -1807,6 +1835,7 @@ async function saveProfile() {
     age:    parseInt(document.getElementById('profile-age').value)      || null,
     height: parseInt(document.getElementById('profile-height').value)   || null,
     weight: parseFloat(document.getElementById('profile-weight').value) || REF_STATE.athlete?.weight || null,
+    role:   document.getElementById('profile-role')?.value              || null,
     level:  document.getElementById('profile-level').value              || null,
     maxhr:  parseInt(document.getElementById('profile-maxhr').value)    || null,
   };
@@ -2415,6 +2444,41 @@ function renderSeasonMonthSelectors(seasonElId, monthElId, allActs, feedbackMont
       ).join('') + syncBtn;
     }
   }
+}
+
+// ── Role & level config ────────────────────────────────────────────────────
+const REFEREE_LEVELS = ['FIFA', 'A', 'Talent', 'B', 'C'];
+const AR_LEVELS      = ['FIFA', 'BGL'];
+
+// Sort order: role first, then level index
+const LEVEL_ORDER = {
+  'Referee / FIFA':             0,
+  'Referee / A':                1,
+  'Referee / Talent':           2,
+  'Referee / B':                3,
+  'Referee / C':                4,
+  'Assistant Referee / FIFA':   5,
+  'Assistant Referee / BGL':    6,
+};
+
+function getRoleLabel(profile) {
+  if (!profile) return '';
+  const role  = profile.role  || '';
+  const level = profile.level || '';
+  if (role && level) return role + ' / ' + level;
+  if (role)  return role;
+  if (level) return level;
+  return '';
+}
+
+function updateLevelOptions() {
+  const role = document.getElementById('profile-role')?.value || '';
+  const lvlEl = document.getElementById('profile-level');
+  if (!lvlEl) return;
+  const levels = role === 'Referee' ? REFEREE_LEVELS
+               : role === 'Assistant Referee' ? AR_LEVELS : [];
+  lvlEl.innerHTML = '<option value="">Select level…</option>'
+    + levels.map(l => `<option value="${l}">${l}</option>`).join('');
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
