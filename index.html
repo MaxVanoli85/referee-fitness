@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v19</title>
+<title>Referee Fitness v20</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -450,7 +450,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v19</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1913,13 +1913,31 @@ async function saveProfile() {
   };
   REF_STATE.profile = p;
   saveStoredProfile(p);
-  setLoading('Saving profile…');
-  // Push profile + activities to backend
-  await pushActivitiesToBackend(REF_STATE.activities, REF_STATE.token);
-  showScreen('dashboard');
-  document.getElementById('profile-save-msg').textContent = 'Saved!';
-  setTimeout(closeProfileModal, 800);
-  renderProfileBanner();
+
+  const msgEl = document.getElementById('profile-save-msg');
+  try {
+    // Push profile directly to backend (lightweight — no activities)
+    const athlete = REF_STATE.athlete;
+    if (athlete) {
+      const profileToSend = {
+        ...p,
+        picture: athlete.profile || athlete.profile_medium || null,
+        city:    athlete.city    || null,
+        country: athlete.country || null,
+      };
+      await fetch(`${BACKEND_URL}/referee/profile`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stravaId: athlete.id, profile: profileToSend })
+      });
+    }
+    if (msgEl) msgEl.textContent = '✓ Saved!';
+    renderProfileBanner();
+    setTimeout(closeProfileModal, 900);
+  } catch(e) {
+    if (msgEl) msgEl.textContent = 'Error saving — try again.';
+    console.log('Profile save error:', e.message);
+  }
 }
 
 function renderProfileBanner() {
@@ -2584,13 +2602,16 @@ async function coachOverrideCategory(refId, actId, catKey) {
     await fetch(`${BACKEND_URL}/referee/rpe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
-      body: JSON.stringify({ stravaId: ref.strava_id || ref.stravaId, activityId: String(actId), rpe: '_cat:' + catKey })
+      body: JSON.stringify({
+        refereeId: refId,
+        stravaId: ref.strava_id || ref.stravaId || null,
+        activityId: String(actId),
+        rpe: '_cat:' + catKey
+      })
     });
   } catch(e) { console.log('Coach override error:', e.message); }
-  // Re-render detail feed
-  const month = COACH_STATE.selectedMonth;
-  const acts  = month ? actsForMonth(ref.activities||[], month) : [];
-  renderFeed('detail-feed', acts);
+  // Re-render full detail panel to refresh stats, categories, everything
+  renderDetail();
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
