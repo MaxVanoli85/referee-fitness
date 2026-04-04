@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v22</title>
+<title>Referee Fitness v24</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1348,6 +1348,27 @@ function openActivityPanel(actId) {
     }
   }
 
+  // RPE buttons — render when panel opens
+  if (!REF_STATE.rpe) {
+    try { REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) { REF_STATE.rpe = {}; }
+  }
+  const rpeContainer = document.getElementById('panel-rpe-btns');
+  if (rpeContainer) {
+    const curRpe = REF_STATE.rpe[String(actId)] || 0;
+    renderRPEButtons('panel-rpe-btns', curRpe, String(actId));
+  }
+
+  // Monthly feeling — also render in panel if container exists
+  const feelContainer = document.getElementById('monthly-feeling-btns');
+  if (feelContainer && REF_STATE.selectedMonth) {
+    if (!REF_STATE.monthlyFeelings) {
+      try { REF_STATE.monthlyFeelings = JSON.parse(sessionStorage.getItem('monthly_feelings')||'{}'); } catch(e) { REF_STATE.monthlyFeelings = {}; }
+    }
+    const curFeel = REF_STATE.monthlyFeelings[REF_STATE.selectedMonth] || 0;
+    _feelingWeekKey = REF_STATE.selectedMonth;
+    renderFeelingButtons('monthly-feeling-btns', curFeel, REF_STATE.selectedMonth);
+  }
+
   // Show the panel
   document.getElementById('activity-panel').style.transform = 'translateX(0)';
   document.getElementById('panel-overlay').style.display = 'block';
@@ -1594,10 +1615,10 @@ function renderDetailSeasonSummary(ref, seasonKey) {
 
   const statsEl = document.getElementById('detail-season-stats');
   if (statsEl) statsEl.innerHTML = `
-    <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">full season</div></div>
-    <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:11px;color:var(--muted)">h</span>${m}<span style="font-size:11px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
-    <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${totalRunKm}<span style="font-size:11px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
-    <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value">${matches}</div><div class="stat-sub">officiated</div></div>`;
+    <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value" style="font-size:18px">${totalSessions}</div><div class="stat-sub">full season</div></div>
+    <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value" style="font-size:18px">${h}<span style="font-size:10px;color:var(--muted)">h</span>${m}<span style="font-size:10px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
+    <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value" style="font-size:18px">${totalRunKm}<span style="font-size:10px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
+    <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value" style="font-size:18px">${matches}</div><div class="stat-sub">officiated</div></div>`;
 
   const catMap = {};
   acts.forEach(a => {
@@ -2049,7 +2070,7 @@ async function saveRPE(activityId, rpe) {
   } catch(e) { console.log('RPE save error:', e.message); }
   // Re-render buttons with new selection
   const cur = REF_STATE.rpe[String(activityId)] || 0;
-  renderRPEButtons('panel-rpe-btns', cur, (v) => saveRPE(activityId, v));
+  renderRPEButtons('panel-rpe-btns', cur, String(activityId));
   document.getElementById('panel-rpe-saved').textContent = 'Saved!';
   setTimeout(() => { const el = document.getElementById('panel-rpe-saved'); if(el) el.textContent=''; }, 2000);
 }
@@ -2444,10 +2465,10 @@ function renderRefSeasonStats(allActs) {
   const statsEl = document.getElementById('ref-season-stats');
   if (statsEl) {
     statsEl.innerHTML = `
-      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${totalSessions}</div><div class="stat-sub">full season</div></div>
-      <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:11px;color:var(--muted)">h</span>${m}<span style="font-size:11px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
-      <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${totalRunKm}<span style="font-size:11px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
-      <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value">${matches}</div><div class="stat-sub">officiated</div></div>`;
+      <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value" style="font-size:18px">${totalSessions}</div><div class="stat-sub">full season</div></div>
+      <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value" style="font-size:18px">${h}<span style="font-size:10px;color:var(--muted)">h</span>${m}<span style="font-size:10px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks</div></div>
+      <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value" style="font-size:18px">${totalRunKm}<span style="font-size:10px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
+      <div class="stat-card"><div class="stat-label">Matches</div><div class="stat-value" style="font-size:18px">${matches}</div><div class="stat-sub">officiated</div></div>`;
   }
 
   // Category breakdown
