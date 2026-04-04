@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v21</title>
+<title>Referee Fitness v22</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -384,20 +384,26 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="detail-panel">
         <div class="detail-header">
           <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+            <!-- Name + photo -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
               <div id="detail-profile-pic" style="flex-shrink:0"></div>
-              <div class="detail-title" id="detail-name">—</div>
+              <div>
+                <div class="detail-title" id="detail-name">—</div>
+                <div class="detail-sub" id="detail-sub">—</div>
+              </div>
             </div>
-            <div class="detail-sub" id="detail-sub">—</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Season</span>
+            <!-- Profile info -->
+            <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+            <!-- Season selector -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Season</span>
               <div id="detail-season-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap;">
-              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;">Month</span>
+            <!-- Month selector -->
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Month</span>
               <div id="detail-month-selector" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
             </div>
-            <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <button style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--orange-border);background:var(--orange-dim);color:var(--orange);cursor:pointer;font-size:12px;font-family:inherit"
@@ -450,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v22</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1682,20 +1688,17 @@ function renderDetail() {
   const profEl = document.getElementById('detail-profile-badge');
   if (profEl) {
     const effMaxHR = getMaxHR(p);
-    const badges = [
-      p.age    ? {label:'Age',    value: p.age    + ' yrs'} : null,
-      p.height ? {label:'Height', value: p.height + ' cm'}  : null,
-      p.weight ? {label:'Weight', value: p.weight + ' kg'}  : null,
-      getRoleLabel(p) ? {label:'Role/Level', value: getRoleLabel(p)} : null,
-      effMaxHR ? {label:'Max HR', value: effMaxHR + ' bpm' + (p.maxhr ? '' : ' (est.)')} : null,
-      p.city   ? {label:'City',   value: p.city}             : null,
+    const bits = [
+      p.age    ? p.age    + ' yrs'  : null,
+      p.height ? p.height + ' cm'   : null,
+      p.weight ? p.weight + ' kg'   : null,
+      getRoleLabel(p) || null,
+      effMaxHR ? 'Max HR ' + effMaxHR + ' bpm' + (p.maxhr ? '' : ' (est.)') : null,
+      p.city   ? p.city : null,
     ].filter(Boolean);
-    profEl.innerHTML = badges.length
-      ? badges.map(b => `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:4px 10px;font-size:11px;">
-          <span style="color:var(--muted)">${b.label}: </span>
-          <span style="color:var(--text);font-weight:500">${b.value}</span>
-        </div>`).join('')
-      : '<span style="font-size:11px;color:var(--faint)">No profile info yet</span>';
+    profEl.innerHTML = bits.length
+      ? bits.map(b => `<div style="background:var(--bg3);border-radius:var(--radius-sm);padding:3px 9px;font-size:11px;color:var(--text)">${b}</div>`).join('')
+      : '<span style="font-size:11px;color:var(--faint)">No profile info yet — referee needs to complete their profile.</span>';
   }
   renderStats('detail-stats',s);
   renderCatLegend('detail-cat-legend',s.catBreakdown);
