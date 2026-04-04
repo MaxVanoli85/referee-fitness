@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v24</title>
+<title>Referee Fitness v25</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v25</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v25</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v24</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v25</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1350,7 +1350,7 @@ function openActivityPanel(actId) {
 
   // RPE buttons — render when panel opens
   if (!REF_STATE.rpe) {
-    try { REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) { REF_STATE.rpe = {}; }
+    try { REF_STATE.rpe = JSON.parse(localStorage.getItem('rpe_data')||'{}'); } catch(e) { REF_STATE.rpe = {}; }
   }
   const rpeContainer = document.getElementById('panel-rpe-btns');
   if (rpeContainer) {
@@ -1362,7 +1362,7 @@ function openActivityPanel(actId) {
   const feelContainer = document.getElementById('monthly-feeling-btns');
   if (feelContainer && REF_STATE.selectedMonth) {
     if (!REF_STATE.monthlyFeelings) {
-      try { REF_STATE.monthlyFeelings = JSON.parse(sessionStorage.getItem('monthly_feelings')||'{}'); } catch(e) { REF_STATE.monthlyFeelings = {}; }
+      try { REF_STATE.monthlyFeelings = JSON.parse(localStorage.getItem('monthly_feelings')||'{}'); } catch(e) { REF_STATE.monthlyFeelings = {}; }
     }
     const curFeel = REF_STATE.monthlyFeelings[REF_STATE.selectedMonth] || 0;
     _feelingWeekKey = REF_STATE.selectedMonth;
@@ -1405,8 +1405,8 @@ function renderRefDashboard() {
 
 
   // Restore RPE and feelings from storage
-  try { if (!REF_STATE.rpe) REF_STATE.rpe = JSON.parse(sessionStorage.getItem('rpe_data')||'{}'); } catch(e) {}
-  try { if (!REF_STATE.monthlyFeelings) REF_STATE.monthlyFeelings = JSON.parse(sessionStorage.getItem('monthly_feelings')||'{}'); } catch(e) {}
+  try { if (!REF_STATE.rpe) REF_STATE.rpe = JSON.parse(localStorage.getItem('rpe_data')||'{}'); } catch(e) {}
+  try { if (!REF_STATE.monthlyFeelings) REF_STATE.monthlyFeelings = JSON.parse(localStorage.getItem('monthly_feelings')||'{}'); } catch(e) {}
   // Season is now primary — renders month selector inside
   renderRefSeasonSelector(REF_STATE.activities || []);
 }
@@ -1895,10 +1895,10 @@ async function pushActivitiesToBackend(activities, token) {
 
 // ── Profile ────────────────────────────────────────────────────────────
 function loadStoredProfile() {
-  try { return JSON.parse(sessionStorage.getItem('ref_profile') || 'null'); } catch(e) { return null; }
+  try { return JSON.parse(localStorage.getItem('ref_profile') || 'null'); } catch(e) { return null; }
 }
 function saveStoredProfile(p) {
-  try { sessionStorage.setItem('ref_profile', JSON.stringify(p)); } catch(e) {}
+  try { localStorage.setItem('ref_profile', JSON.stringify(p)); } catch(e) {}
 }
 
 function openProfileModal() {
@@ -2060,7 +2060,7 @@ async function saveRPE(activityId, rpe) {
   // Save locally
   if (!REF_STATE.rpe) REF_STATE.rpe = {};
   REF_STATE.rpe[String(activityId)] = rpe;
-  try { sessionStorage.setItem('rpe_data', JSON.stringify(REF_STATE.rpe)); } catch(e) {}
+  try { localStorage.setItem('rpe_data', JSON.stringify(REF_STATE.rpe)); } catch(e) {}
   // Push to backend
   try {
     await fetch(`${BACKEND_URL}/referee/rpe`, {
@@ -2080,9 +2080,9 @@ async function saveWeeklyFeeling(weekKey, feeling) {
   if (!athlete) return;
   if (!REF_STATE.monthlyFeelings) REF_STATE.monthlyFeelings = {};
   REF_STATE.monthlyFeelings[weekKey] = feeling;
-  try { sessionStorage.setItem('monthly_feelings', JSON.stringify(REF_STATE.monthlyFeelings)); } catch(e) {}
+  try { localStorage.setItem('monthly_feelings', JSON.stringify(REF_STATE.monthlyFeelings)); } catch(e) {}
   try {
-    await fetch(`${BACKEND_URL}/referee/monthly-feeling`, {
+    await fetch(`${BACKEND_URL}/referee/weekly-feeling`, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ stravaId: athlete.id, weekKey, feeling })
     });
