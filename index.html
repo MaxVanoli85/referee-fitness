@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v20</title>
+<title>Referee Fitness v21</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -450,7 +450,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v20</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v21</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1520,22 +1520,28 @@ function renderRefereeGrid() {
           ${p.picture
             ? `<img src="${p.picture}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0" onerror="this.style.display='none'">`
             : `<div class="ref-avatar" style="background:${color}22;border:1px solid ${color}55;color:${color}">${initials}</div>`}
-          <div>
+          <div style="min-width:0;flex:1">
             <div class="ref-name">${r.name}</div>
             <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
+            ${(()=>{const bits=[p.age?p.age+' yrs':null,p.height?p.height+' cm':null,p.weight?p.weight+' kg':null,getRoleLabel(p)||null].filter(Boolean);return bits.length?`<div style="font-size:10px;color:var(--faint);margin-top:2px">${bits.join(' · ')}</div>`:''})()}
           </div>
         </div>
         ${(()=>{
-          const availM = [...new Set((r.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'))].sort().reverse().slice(0,6);
-          const curM = getRefMonth(r.id) || availM[0] || '';
-          if (!availM.length) return '';
-          return `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;" onclick="event.stopPropagation()">
-            ${availM.map(k=>`<button onclick="setRefMonth('${r.id}','${k}',event)"
-              style="padding:2px 7px;border-radius:var(--radius-sm);border:1px solid ${k===curM?'var(--orange-border)':'var(--border)'};background:${k===curM?'var(--orange-dim)':'none'};color:${k===curM?'var(--orange)':'var(--faint)'};cursor:pointer;font-size:10px;font-family:inherit;"
+          const cardSeason = _coachSelectedSeason || getSeasonKey();
+          const seasonMths = getSeasonMonths(cardSeason);
+          const dataMths   = new Set((r.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'));
+          const availMths  = seasonMths.filter(m => dataMths.has(m));
+          const curM       = getRefMonth(r.id) || availMths[0] || '';
+          return `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin:8px 0 4px">${getSeasonLabel(cardSeason)}</div>
+          ${availMths.length
+            ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;" onclick="event.stopPropagation()">
+              ${availMths.map(k=>`<button onclick="setRefMonth('${r.id}','${k}',event)"
+                style="padding:2px 7px;border-radius:var(--radius-sm);border:1px solid ${k===curM?'var(--orange-border)':'var(--border)'};background:${k===curM?'var(--orange-dim)':'none'};color:${k===curM?'var(--orange)':'var(--faint)'};cursor:pointer;font-size:10px;font-family:inherit;"
               >${getMonthLabel(k)}</button>`).join('')}
-          </div>`;
+            </div>`
+            : `<div style="font-size:11px;color:var(--faint);margin-bottom:8px">No data this season</div>`}`;
         })()}
-        <div class="ref-stats">
+                <div class="ref-stats">
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
           <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
