@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v26</title>
+<title>Referee Fitness v27</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v26</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v26</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v26</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -676,7 +676,8 @@ const TYPE_FORCE = {
 const MATCH_KEYWORDS = ['bgl ligue','bgl','ph','d1','d2','d3','coupe','match','cdl'];
 
 // Activity types and Strava types to exclude from load calculation
-const EXCLUDE_FROM_LOAD = ['Walk','Hike','VirtualRide'];
+const ALTERNATIVE_TYPES = ['Ride','VirtualRide','Swim','Walk','Hike','Rowing','Elliptical','StairStepper','Yoga','Pilates','Crossfit','WeightTraining'];
+const EXCLUDE_FROM_LOAD  = ALTERNATIVE_TYPES;
 
 function isMatch(act) {
   const name = (act.name || '').toLowerCase();
@@ -922,12 +923,13 @@ function zoneMethodLabel(profile) {
 }
 
 // ── Load weight per category
-const LOAD_WEIGHTS = { match:1.0, high:1.0, medium:0.75, endurance:0.5, strength:0.5, recovery:0, other:0 };
+const LOAD_WEIGHTS = { match:1.0, high:1.0, medium:0.75, endurance:0.5, strength:0.5, recovery:0, alternative:0, other:0 };
 
 function actLoad(a) {
-  if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return 0;
   const cat = getCategory(a).key;
-  const w   = LOAD_WEIGHTS[cat] !== undefined ? LOAD_WEIGHTS[cat] : 0.5;
+  if (cat === 'alternative') return 0;
+  if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return 0;
+  const w = LOAD_WEIGHTS[cat] !== undefined ? LOAD_WEIGHTS[cat] : 0.5;
   return Math.round((a.moving_time || a.elapsed_time || 0) / 60 * w);
 }
 
@@ -947,8 +949,10 @@ function computeStats(acts, allActs) {
   // Volume (selected month display)
   const totalSessions = acts.length;
   const totalMins = Math.round(
-    acts.filter(a => !EXCLUDE_FROM_LOAD.includes(a.type) && !EXCLUDE_FROM_LOAD.includes(a.sport_type))
-        .reduce((s,a) => s + (a.moving_time || a.elapsed_time || 0), 0) / 60);
+    acts.filter(a => {
+      const cat = getCategory(a).key;
+      return cat !== 'alternative' && !EXCLUDE_FROM_LOAD.includes(a.type) && !EXCLUDE_FROM_LOAD.includes(a.sport_type);
+    }).reduce((s,a) => s + (a.moving_time || a.elapsed_time || 0), 0) / 60);
   const RUN_TYPES = ['Run','TrailRun','VirtualRun'];
   const totalRunKm = +(acts.filter(a => RUN_TYPES.includes(a.type) || RUN_TYPES.includes(a.sport_type))
     .reduce((s,a) => s + (a.distance||0), 0) / 1000).toFixed(1);
@@ -1627,7 +1631,10 @@ function renderDetailSeasonSummary(ref, seasonKey) {
     catMap[c.key].count++;
     catMap[c.key].mins += Math.round((a.moving_time||a.elapsed_time||0)/60);
   });
-  const cats = Object.values(catMap).sort((a,b)=>b.count-a.count);
+  const cats = Object.values(catMap).sort((a,b)=>{
+    const oa=CAT_DISPLAY_ORDER.indexOf(a.key); const ob=CAT_DISPLAY_ORDER.indexOf(b.key);
+    if(oa!==ob) return (oa<0?99:oa)-(ob<0?99:ob); return b.count-a.count;
+  }).filter(c=>c.count>0);
   const maxC = Math.max(...cats.map(c=>c.count),1);
   const totC = cats.reduce((s,c)=>s+c.count,0)||1;
   const bar = cats.length ? `<div style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-bottom:10px;gap:1px">${cats.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>` : '';
@@ -2479,7 +2486,10 @@ function renderRefSeasonStats(allActs) {
     catMap[c.key].count++;
     catMap[c.key].mins += Math.round((a.moving_time||a.elapsed_time||0)/60);
   });
-  const cats = Object.values(catMap).sort((a,b)=>b.count-a.count);
+  const cats = Object.values(catMap).sort((a,b)=>{
+    const oa=CAT_DISPLAY_ORDER.indexOf(a.key); const ob=CAT_DISPLAY_ORDER.indexOf(b.key);
+    if(oa!==ob) return (oa<0?99:oa)-(ob<0?99:ob); return b.count-a.count;
+  }).filter(c=>c.count>0);
   const maxCount = Math.max(...cats.map(c=>c.count),1);
   const totalCount = cats.reduce((s,c)=>s+c.count,0)||1;
   const stackedBar = cats.length ? `<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:10px;gap:1px">
