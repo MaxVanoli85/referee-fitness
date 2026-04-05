@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v27</title>
+<title>Referee Fitness v29</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v29</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v29</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v27</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v29</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -655,14 +655,19 @@ const APP_URL          = 'https://maxvanoli85.github.io/referee-fitness';
 const REDIRECT_URI = window.location.href.split('?')[0].replace(/#.*$/,'');
 // ── Training categories ────────────────────────────────────────────────
 const TRAIN_CATS = {
-  match:     { label:'Match day',      icon:'⚽', color:'#22c97a', short:'Match'   },
-  high:      { label:'High intensity', icon:'⚡', color:'#f0544f', short:'High'    },
-  medium:    { label:'Medium intensity',icon:'🔥', color:'#f5a623', short:'Medium' },
-  endurance: { label:'Endurance',      icon:'🏃', color:'#4a9eff', short:'Endurance'},
-  recovery:  { label:'Recovery',       icon:'🌀', color:'#7f77dd', short:'Recovery'},
-  strength:  { label:'Strength',       icon:'🏋️', color:'#888',   short:'Strength'},
-  other:     { label:'Other',          icon:'🎯', color:'#555',   short:'Other'   },
+  match:       { label:'Match day',        icon:'⚽', color:'#22c97a', short:'Match'       },
+  high:        { label:'High intensity',   icon:'⚡', color:'#f0544f', short:'High'        },
+  medium:      { label:'Medium intensity', icon:'🔥', color:'#f5a623', short:'Medium'      },
+  endurance:   { label:'Endurance',        icon:'🏃', color:'#4a9eff', short:'Endurance'   },
+  strength:    { label:'Strength',         icon:'🏋️', color:'#888',   short:'Strength'    },
+  recovery:    { label:'Recovery',         icon:'🌀', color:'#7f77dd', short:'Recovery'    },
+  alternative: { label:'Alternative',      icon:'🚴', color:'#5f5e5a', short:'Alternative' },
+  other:       { label:'Other',            icon:'🎯', color:'#444',   short:'Other'       },
 };
+
+// Display order for categories
+const CAT_DISPLAY_ORDER = ['match','high','medium','endurance','strength','recovery','alternative','other'];
+
 
 // Strava type → force category (overrides HR logic)
 const TYPE_FORCE = {
@@ -743,7 +748,7 @@ function autoCategory(act) {
 // Get effective category (manual override wins)
 function getCategory(act) {
   const key = act._cat || autoCategory(act);
-  return { key, ...TRAIN_CATS[key] };
+  return { key, ...(TRAIN_CATS[key] || TRAIN_CATS.other) };
 }
 
 // Legacy CAT_MAP kept for any remaining references
@@ -969,9 +974,14 @@ function computeStats(acts, allActs) {
     catMap[c.key].count++;
     catMap[c.key].mins += Math.round((a.moving_time || a.elapsed_time || 0) / 60);
   });
-  const categories = Object.values(catMap).sort((a,b) => b.count - a.count);
+  const categories = Object.values(catMap).sort((a,b) => {
+    const oa = CAT_DISPLAY_ORDER.indexOf(a.key);
+    const ob = CAT_DISPLAY_ORDER.indexOf(b.key);
+    if (oa !== ob) return (oa<0?99:oa) - (ob<0?99:ob);
+    return b.count - a.count;
+  }).filter(c => c.count > 0);
   const catBreakdown = {};
-  ['match','high','medium','endurance','recovery','strength'].forEach(k => {
+  CAT_DISPLAY_ORDER.forEach(k => {
     catBreakdown[k] = catMap[k] || {...TRAIN_CATS[k], count:0, mins:0};
   });
 
@@ -2283,60 +2293,57 @@ function renderCAFDashboard() {
 
   // Individual referee rows
   const AVATAR_COLORS_LOCAL = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
-  document.getElementById('caf-referee-list').innerHTML = refs.map((r,i) => {
-    const acts = actsForMonth(r.activities||[], month);
-    const s    = computeStats(acts, r.activities||[]);
-    const rc   = s.ratio>1.5?'var(--red)':s.ratio>1.3?'var(--amber)':'var(--green)';
-    const color = AVATAR_COLORS_LOCAL[i % AVATAR_COLORS_LOCAL.length];
-    const initials = r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
-    const p = r.profile || {};
-    const fb = r.feedback?.[month];
-    const feelingVal = (r.monthlyFeelings||{})[month] || 0;
-    const feelingIcon = feelingVal
-      ? (FEELING_OPTIONS.find(f=>f.value===feelingVal)||{icon:'—'}).icon : '—';
-
-    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        ${p.picture
-          ? `<img src="${p.picture}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0">`
-          : `<div style="width:40px;height:40px;border-radius:50%;background:${color}22;border:1px solid ${color}55;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:${color};flex-shrink:0">${initials}</div>`}
-        <div style="flex:1;min-width:120px">
-          <div style="font-size:14px;font-weight:500;color:var(--text)">${r.name}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:1px">${p.level||''}${p.age?' · '+p.age+'y':''}</div>
-        </div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
-          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Sessions</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace">${s.totalSessions}</div></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Run km</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace">${s.totalRunKm}</div></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">A:C ratio</div><div style="font-size:16px;font-weight:300;font-family:'DM Mono',monospace;color:${rc}">${s.ratio||'—'}</div></div>
-          <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Feeling</div><div style="font-size:20px">${feelingIcon}</div></div>
-        </div>
-      </div>
-      <!-- Category breakdown for this month -->
-      ${(() => {
-        const maxC = Math.max(...s.categories.map(c=>c.count),1);
-        const totalC = s.categories.reduce((t,c)=>t+c.count,0)||1;
-        return s.categories.length ? `<div style="margin-top:10px;">
-          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">Training categories — ${getMonthLabel(month)}</div>
-          ${s.categories.map(c=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-            <span style="font-size:13px;width:20px;text-align:center">${c.icon}</span>
-            <span style="font-size:12px;color:var(--text);width:110px;flex-shrink:0">${c.label}</span>
-            <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;">
-              <div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color};border-radius:2px"></div>
+  document.getElementById('caf-referee-list').innerHTML = (() => {
+    const ACOLORS = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
+    const sorted = [...refs].sort((a,b)=>{
+      const oa=LEVEL_ORDER[getRoleLabel(a.profile||{})]??99;
+      const ob=LEVEL_ORDER[getRoleLabel(b.profile||{})]??99;
+      return oa!==ob?oa-ob:a.name.localeCompare(b.name);
+    });
+    const groups={}, groupOrder=[];
+    sorted.forEach((r,i)=>{
+      const lbl=getRoleLabel(r.profile||{})||'No level set';
+      if(!groups[lbl]){groups[lbl]=[];groupOrder.push(lbl);}
+      groups[lbl].push({r,i:refs.indexOf(r)});
+    });
+    return groupOrder.map(lbl=>{
+      const items=groups[lbl];
+      const rows=items.map(({r,i})=>{
+        const acts=actsForMonth(r.activities||[],month);
+        const s=computeStats(acts,r.activities||[]);
+        const rc=s.ratio>1.5?'var(--red)':s.ratio>1.3?'var(--amber)':'var(--green)';
+        const color=ACOLORS[i%ACOLORS.length];
+        const initials=r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+        const p=r.profile||{};
+        const feelingVal=(r.monthlyFeelings||{})[month]||0;
+        const feelingIcon=feelingVal?(FEELING_OPTIONS.find(f=>f.value===feelingVal)||{icon:'—'}).icon:'—';
+        const profileBits=[p.age?p.age+' yrs':null,p.height?p.height+' cm':null,p.weight?p.weight+' kg':null,getRoleLabel(p)||null].filter(Boolean);
+        const maxC=Math.max(...s.categories.map(c=>c.count),1);
+        const totalC=s.categories.reduce((t,c)=>t+c.count,0)||1;
+        return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            ${p.picture?`<img src="${p.picture}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0">`:`<div style="width:38px;height:38px;border-radius:50%;background:${color}22;border:1px solid ${color}55;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${color};flex-shrink:0">${initials}</div>`}
+            <div style="flex:1;min-width:120px">
+              <div style="font-size:14px;font-weight:500;color:var(--text)">${r.name}</div>
+              ${profileBits.length?`<div style="font-size:11px;color:var(--faint);margin-top:1px">${profileBits.join(' · ')}</div>`:''}
             </div>
-            <span style="font-size:11px;color:var(--muted);width:32px;text-align:right;font-family:'DM Mono',monospace">${c.count}x</span>
-            <span style="font-size:11px;color:var(--faint);width:28px;text-align:right">${Math.round(c.count/totalC*100)}%</span>
-          </div>`).join('')}
-        </div>` : '';
-      })()}
-      ${fb ? `<div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)">
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Coach report</div>
-        ${fb.load?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Load: ${fb.load}</div>`:''}
-        ${fb.fitness?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Fitness: ${fb.fitness}</div>`:''}
-        ${fb.recommendation?`<div style="font-size:12px;color:var(--text);margin-bottom:2px">Recommendation: ${fb.recommendation}</div>`:''}
-        ${fb.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">"${fb.notes}"</div>`:''}
-      </div>` : `<div style="margin-top:8px;font-size:11px;color:var(--faint)">No coach report for this month.</div>`}
-    </div>`;
-  }).join('');
+            <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+              <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Sessions</div><div style="font-size:15px;font-weight:300;font-family:'DM Mono',monospace">${s.totalSessions}</div></div>
+              <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Run km</div><div style="font-size:15px;font-weight:300;font-family:'DM Mono',monospace">${s.totalRunKm}</div></div>
+              <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">A:C</div><div style="font-size:15px;font-weight:300;font-family:'DM Mono',monospace;color:${rc}">${s.ratio||'—'}</div></div>
+              <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Feeling</div><div style="font-size:18px">${feelingIcon}</div></div>
+            </div>
+          </div>
+          ${s.categories.length?`<div style="margin-top:8px;">
+            <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-bottom:6px;gap:1px">${s.categories.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>
+            ${s.categories.map(c=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><span style="font-size:12px;width:18px;text-align:center">${c.icon}</span><span style="font-size:12px;color:var(--text);flex:1">${c.label}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:26px;text-align:right">${c.count}x</span><div style="width:70px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;"><div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color}"></div></div><span style="font-size:11px;color:var(--faint);width:26px;text-align:right">${Math.round(c.count/totalC*100)}%</span></div>`).join('')}
+          </div>`:''}
+          ${(()=>{const fb=r.feedback?.[month];return fb?`<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Coach report</div>${fb.load?`<div style="font-size:12px;color:var(--text)">${fb.load}</div>`:''} ${fb.fitness?`<div style="font-size:12px;color:var(--text)">${fb.fitness}</div>`:''} ${fb.recommendation?`<div style="font-size:12px;color:var(--text)">${fb.recommendation}</div>`:''} ${fb.notes?`<div style="font-size:12px;color:var(--muted);font-style:italic">"${fb.notes}"</div>`:''}</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--faint)">No coach report for this month.</div>`})()}
+        </div>`;
+      }).join('');
+      return `<div style="margin-bottom:1.5rem;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">${lbl} <span style="color:var(--faint);font-size:10px">(${items.length})</span></div>${rows}</div>`;
+    }).join('');
+  })();
 }
 
 // ── Referee feedback loader ────────────────────────────────────────────────
