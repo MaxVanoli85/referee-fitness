@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v30</title>
+<title>Referee Fitness v32</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v30</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v30</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v30</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -897,17 +897,17 @@ function getMaxHR(profile) {
 function getZoneThresholds(profile) {
   const maxHR = getMaxHR(profile);
   if (maxHR) {
-    // Percentage-based zones (standard sports science)
+    // Polar zone boundaries: Z1<60%, Z2 60-76%, Z3 76-86%, Z4 86-94%, Z5>94%
     return [
-      Math.round(maxHR * 0.60), // Z1 < 60%
-      Math.round(maxHR * 0.70), // Z2 60-70%
-      Math.round(maxHR * 0.80), // Z3 70-80%
-      Math.round(maxHR * 0.90), // Z4 80-90%
-      // Z5 > 90%
+      Math.round(maxHR * 0.60), // Z1 upper boundary
+      Math.round(maxHR * 0.76), // Z2 upper boundary
+      Math.round(maxHR * 0.86), // Z3 upper boundary
+      Math.round(maxHR * 0.94), // Z4 upper boundary
+      // Z5 > 94%
     ];
   }
-  // Fixed fallback thresholds
-  return [115, 138, 155, 170];
+  // Fixed fallback thresholds (approximate Polar zones for ~185bpm max HR)
+  return [111, 141, 159, 174];
 }
 
 // Assign a single HR value to a zone index (0-4)
@@ -1143,7 +1143,7 @@ function renderCats(containerId, cats, breakdown) {
 }
 
 function renderZones(containerId, zones) {
-  const names=['Z1 easy','Z2 aerobic','Z3 tempo','Z4 threshold','Z5 max'];
+  const names=['Z1 <60%','Z2 60-76%','Z3 76-86%','Z4 86-94%','Z5 >94%'];
   const colors=['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
   document.getElementById(containerId).innerHTML = zones.map((z,i)=>`
     <div class="zone-row"><span class="zone-lbl">${names[i]}</span>
@@ -1269,7 +1269,22 @@ function renderFeed(containerId, acts) {
             <div class="act-meta">${day} · ${dur}min${dist}</div>
             ${catPills}
           </div>
-          <div class="act-hr">${hr}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            <div class="act-hr">${hr}</div>
+            ${(()=>{
+              // Show RPE emoji if available
+              let rpeVal = 0;
+              if (containerId === 'detail-feed' && COACH_STATE.selectedReferee) {
+                const ref = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
+                const raw = (ref&&ref.rpe||{})[String(a.id)];
+                rpeVal = raw && !String(raw).startsWith('_cat:') ? parseInt(raw)||0 : 0;
+              } else {
+                rpeVal = (REF_STATE.rpe||{})[String(a.id)] || 0;
+              }
+              const opt = rpeVal ? RPE_OPTIONS.find(o=>o.value===rpeVal) : null;
+              return opt ? `<span style="font-size:14px" title="Session feeling: ${opt.label}">${opt.icon}</span>` : '';
+            })()}
+          </div>
         </div>`;
       }).join('')
     : '<div class="empty-state">No activities this month.</div>';
@@ -1298,7 +1313,7 @@ function openActivityPanel(actId) {
   const zoneMins = approxZonesSingle(a, refProfile);
   const methodEl = document.getElementById('panel-zone-method');
   if (methodEl) methodEl.textContent = zoneMethodLabel(refProfile);
-  const zoneNames  = ['Z1 easy','Z2 aerobic','Z3 tempo','Z4 threshold','Z5 max'];
+  const zoneNames  = ['Z1 <60%','Z2 60-76%','Z3 76-86%','Z4 86-94%','Z5 >94%'];
   const zoneColors = ['#22c97a','#4a9eff','#f5a623','#fc4c02','#f0544f'];
 
   document.getElementById('panel-title').textContent = a.name;
