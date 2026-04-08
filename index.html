@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v33</title>
+<title>Referee Fitness v34</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v34</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v34</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v34</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -678,7 +678,19 @@ const TYPE_FORCE = {
 };
 
 // Keywords in activity name that signal a match (case-insensitive)
-const MATCH_KEYWORDS = ['bgl ligue','bgl','ph','d1','d2','d3','coupe','match','cdl'];
+const MATCH_KEYWORDS = [
+  'bgl ligue','bgl','ph','d1','d2','d3','coupe','cdl',
+  'match','game','spiel','rencontre','partie',
+  ' vs ',' vs.','versus',' fc ',' fc.',
+  'united','sporting','racing','athletic','olympique',
+];
+
+function isMatch(act) {
+  const name = (act.name || '').toLowerCase();
+  if (MATCH_KEYWORDS.some(k => name.includes(k))) return true;
+  if (/\b\d+[-:]\d+\b/.test(name)) return true;
+  return false;
+}
 
 // Activity types and Strava types to exclude from load calculation
 const ALTERNATIVE_TYPES = ['Ride','VirtualRide','Swim','Walk','Hike','Rowing','Elliptical','StairStepper','Yoga','Pilates','Crossfit','WeightTraining'];
