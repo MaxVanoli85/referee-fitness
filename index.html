@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v32</title>
+<title>Referee Fitness v33</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v32</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v33</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -684,10 +684,7 @@ const MATCH_KEYWORDS = ['bgl ligue','bgl','ph','d1','d2','d3','coupe','match','c
 const ALTERNATIVE_TYPES = ['Ride','VirtualRide','Swim','Walk','Hike','Rowing','Elliptical','StairStepper','Yoga','Pilates','Crossfit','WeightTraining'];
 const EXCLUDE_FROM_LOAD  = ALTERNATIVE_TYPES;
 
-function isMatch(act) {
-  const name = (act.name || '').toLowerCase();
-  return MATCH_KEYWORDS.some(k => name.includes(k));
-}
+
 
 // Auto-categorise a single activity by HR and pace
 function autoCategory(act) {
@@ -1202,27 +1199,43 @@ function renderOverrideList(containerId, acts) {
   }).join('');
 }
 
-function overrideCategory(el, actId, catKey) {
-  // Find and update the activity in REF_STATE
+async function overrideCategory(el, actId, catKey) {
   const act = REF_STATE.activities.find(a=>String(a.id)===String(actId));
   if (!act) return;
   act._cat = catKey;
-  // Save overrides to sessionStorage
+
+  // Save to localStorage so it persists across sessions
   try {
-    const overrides = JSON.parse(sessionStorage.getItem('cat_overrides')||'{}');
-    overrides[actId] = catKey;
-    sessionStorage.setItem('cat_overrides', JSON.stringify(overrides));
+    const overrides = JSON.parse(localStorage.getItem('cat_overrides')||'{}');
+    overrides[String(actId)] = catKey;
+    localStorage.setItem('cat_overrides', JSON.stringify(overrides));
   } catch(e) {}
-  // Re-render the current month
+
+  // Push to backend via RPE endpoint (stored as '_cat:key')
+  const athlete = REF_STATE.athlete;
+  if (athlete) {
+    try {
+      await fetch(`${BACKEND_URL}/referee/rpe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stravaId: athlete.id,
+          activityId: String(actId),
+          rpe: '_cat:' + catKey
+        })
+      });
+    } catch(e) { console.log('Category save error:', e.message); }
+  }
+
+  // Re-render
   renderRefMonth();
-  // Re-render just the override list to update pills
   const monthActs = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
   renderOverrideList('ref-override-list', monthActs);
 }
 
 function applyStoredOverrides(activities) {
   try {
-    const overrides = JSON.parse(sessionStorage.getItem('cat_overrides')||'{}');
+    const overrides = JSON.parse(localStorage.getItem('cat_overrides')||'{}');
     activities.forEach(a=>{
       if (overrides[a.id]) a._cat = overrides[a.id];
       // Also apply RPE-stored cat overrides (from coach or self)
