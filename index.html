@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v35</title>
+<title>Referee Fitness v36</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v35</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v36</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v35</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v36</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v35</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v36</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -999,7 +999,8 @@ function computeStats(acts, allActs) {
   const recent = [...acts].filter(a => a && a.start_date)
     .sort((a,b) => new Date(b.start_date) - new Date(a.start_date)).slice(0,5);
 
-  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio,
+  const isHistorical = refDate != null;
+  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio, isHistorical,
           categories, catBreakdown, zones, weeks, recent};
 }
 
@@ -1471,7 +1472,7 @@ function renderRefMonth() {
   if(!REF_STATE.selectedMonth) return;
   renderMonthlyFeelingBar();
   const acts = actsForMonth(REF_STATE.activities, REF_STATE.selectedMonth);
-  const s = computeStats(acts, REF_STATE.activities);
+  const s = computeStats(acts, REF_STATE.activities, getACRefDate(REF_STATE.selectedMonth));
   const name = REF_STATE.athlete?`${REF_STATE.athlete.firstname} ${REF_STATE.athlete.lastname}`:'Athlete';
   document.getElementById('ref-page-title').textContent=`${getMonthLabel(REF_STATE.selectedMonth)} overview`;
   document.getElementById('ref-page-sub').textContent=`${s.totalSessions} sessions · ${name}`;
@@ -1737,7 +1738,7 @@ function renderDetail() {
   if(!ref) return;
   const month = COACH_STATE.selectedMonth;
   const acts = month ? actsForMonth(ref.activities||[], month) : [];
-  const s = computeStats(acts, ref.activities||[]);
+  const s = computeStats(acts, ref.activities||[], getACRefDate(month));
   document.getElementById('detail-name').textContent = ref.name;
 
   // Month selector in detail panel
@@ -2352,7 +2353,7 @@ function renderCAFDashboard() {
       const items=groups[lbl];
       const rows=items.map(({r,i})=>{
         const acts=actsForMonth(r.activities||[],month);
-        const s=computeStats(acts,r.activities||[]);
+        const s=computeStats(acts,r.activities||[],getACRefDate(month));
         const rc=s.ratio>1.5?'var(--red)':s.ratio>1.3?'var(--amber)':'var(--green)';
         const color=ACOLORS[i%ACOLORS.length];
         const initials=r.name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
@@ -2701,6 +2702,20 @@ async function coachOverrideCategory(refId, actId, catKey) {
   } catch(e) { console.log('Coach override error:', e.message); }
   // Re-render full detail panel to refresh stats, categories, everything
   renderDetail();
+}
+
+// ── A:C reference date helper ──────────────────────────────────────────────
+function getACRefDate(monthKey) {
+  if (!monthKey) return null;
+  const today = new Date();
+  const [y, m] = monthKey.split('-').map(Number);
+  const currentKey = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0');
+  // If selected month is current month → use today (live)
+  if (monthKey === currentKey) return null;
+  // For past months → use last day of that month at 23:59
+  const lastDay = new Date(y, m, 0, 23, 59, 59); // day 0 of next month = last day of this month
+  // Don't go into the future
+  return lastDay <= today ? lastDay : today;
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
