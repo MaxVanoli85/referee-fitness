@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v39</title>
+<title>Referee Fitness v40</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v39</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v40</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v39</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v40</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v39</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v40</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -2716,6 +2716,36 @@ function getACRefDate(monthKey) {
   const lastDay = new Date(y, m, 0, 23, 59, 59); // day 0 of next month = last day of this month
   // Don't go into the future
   return lastDay <= today ? lastDay : today;
+}
+
+// ── Restore profile from backend ───────────────────────────────────────────
+async function fetchAndRestoreProfile(stravaId) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/referee/feedback?stravaId=${stravaId}&monthKey=__profile__`);
+    // We need a dedicated profile fetch — use the push response or a new endpoint
+    // For now: after pushing activities, the server returns the stored profile in response
+  } catch(e) {}
+}
+
+// Called after auth: merge localStorage profile with whatever backend has
+async function restoreProfileFromBackend(stravaId) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/referee/get-profile?stravaId=${stravaId}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.profile) return;
+    // Merge: backend profile fills in any gaps that localStorage doesn't have
+    const local = loadStoredProfile() || {};
+    const merged = Object.assign({}, data.profile, local); // local overrides backend
+    // But if local is empty (cleared), use backend entirely
+    const hasLocal = Object.values(local).some(v => v !== null && v !== undefined);
+    const final = hasLocal ? merged : data.profile;
+    REF_STATE.profile = final;
+    saveStoredProfile(final);
+    console.log('[profile] restored from backend:', final);
+  } catch(e) {
+    console.log('[profile] could not restore from backend:', e.message);
+  }
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
