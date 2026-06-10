@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v41</title>
+<title>Referee Fitness v42</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v41</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v42</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v41</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v42</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v41</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v42</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1815,7 +1815,19 @@ function renderDetail() {
   if (labelEl2) labelEl2.textContent = getSeasonLabel(COACH_STATE.detailSeason);
   renderDetailSeasonSummary(ref, COACH_STATE.detailSeason);
 
-  renderZones('detail-zones',s.zones);
+  // Show exact/estimated label for the month's dominant zone source
+  const detailZoneEl = document.getElementById('detail-zones');
+  if (detailZoneEl) {
+    const detailRef = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
+    const detailActs = month ? actsForMonth(detailRef&&detailRef.activities||[], month) : [];
+    const exactCount = detailActs.filter(a=>a.hr_zones&&a.hr_zones.length===5).length;
+    const totalHR    = detailActs.filter(a=>a.average_heartrate).length;
+    const labelHTML  = exactCount > 0
+      ? `<div style="font-size:10px;color:var(--green);margin-bottom:6px">&#10003; ${exactCount} of ${totalHR} activities use exact HR stream data</div>`
+      : (totalHR > 0 ? `<div style="font-size:10px;color:var(--faint);margin-bottom:6px">~ Estimated zones (no stream data yet)</div>` : '');
+    detailZoneEl.innerHTML = labelHTML;
+  }
+  renderZones('detail-zones', s.zones, true);
   renderLoad('detail-load',s.weeks);
   renderRecovery('detail-recovery',s);
   renderFeed('detail-feed', actsForMonth((COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee)||{activities:[]}).activities||[], COACH_STATE.selectedMonth)||[]);
