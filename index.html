@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v46</title>
+<title>Referee Fitness v47</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v46</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v47</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v46</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v47</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v46</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v47</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -827,7 +827,8 @@ function connectStravaReferee() {
     +`&response_type=code`
     +`&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
     +`&approval_prompt=auto`
-    +`&scope=read,activity:read_all`;
+    +`&scope=read,activity:read_all`
+    +(refereeId ? `&state=${encodeURIComponent(refereeId)}` : '');
   window.location.href = url;
 }
 
@@ -2786,7 +2787,7 @@ async function boot() {
   const params = new URLSearchParams(window.location.search);
   const code   = params.get('code');
   const error  = params.get('error');
-  const refId  = params.get('ref'); // referee-specific invite link
+  const refId  = params.get('ref') || params.get('state') || null; // ref from invite or state from OAuth
 
   if(code||error||refId) window.history.replaceState({},'',window.location.pathname);
 
@@ -2808,7 +2809,13 @@ async function boot() {
   if(code) {
     setLoading('Connecting to Strava…');
     try {
-      const data = await exchangeCode(code, refId||null);
+      // refId may be lost after OAuth redirect — recover from sessionStorage
+      let resolvedRefId = refId;
+      if (!resolvedRefId) {
+        try { resolvedRefId = sessionStorage.getItem('invite_ref_id'); } catch(e) {}
+      }
+      console.log('[auth] exchanging code, refereeId:', resolvedRefId);
+      const data = await exchangeCode(code, resolvedRefId||null);
       REF_STATE.token   = data.access_token;
       REF_STATE.athlete = data.athlete || await fetchAthleteAPI(data.access_token);
       try{sessionStorage.setItem('rfm_token', data.access_token); sessionStorage.setItem('rfm_athlete', JSON.stringify(REF_STATE.athlete));}catch(e){}
