@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v50</title>
+<title>Referee Fitness v51</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v50</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v51</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v50</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v51</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v50</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v51</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -2253,23 +2253,29 @@ function renderFeedbackSection(containerId, ref, monthKey) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const fb = ref?.feedback?.[monthKey];
-  if (!fb) {
+  if (!fb || (!fb.load && !fb.fitness && !fb.recommendation && !fb.notes)) {
     el.innerHTML = '<div style="font-size:12px;color:var(--faint)">No feedback yet for this month.</div>';
     return;
   }
+  const isDraft = fb.draft && !fb.validated;
   const rows = [
-    fb.load           ? {label:'Load',           value:fb.load}           : null,
-    fb.fitness        ? {label:'Fitness',         value:fb.fitness}        : null,
+    fb.load           ? {label:'Load assessment', value:fb.load}           : null,
+    fb.fitness        ? {label:'Fitness status',  value:fb.fitness}        : null,
     fb.recommendation ? {label:'Recommendation',  value:fb.recommendation} : null,
     fb.notes          ? {label:'Notes',           value:fb.notes}          : null,
   ].filter(Boolean);
-  const updated = fb.updatedAt ? new Date(fb.updatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
-  el.innerHTML = rows.map(r=>`
-    <div style="padding:7px 0;border-bottom:1px solid var(--border);">
+  const updated = fb.updatedAt
+    ? new Date(fb.updatedAt).toLocaleDateString('fr-BE',{day:'numeric',month:'short',year:'numeric'}) : '';
+  el.innerHTML =
+    (isDraft ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--amber);margin-bottom:8px">
+      <span style="font-size:11px;color:var(--amber)">🤖 Rapport IA — à valider</span>
+      <button onclick="validateFeedback('${ref.id}','${monthKey}')" style="padding:3px 10px;border-radius:var(--radius-sm);border:1px solid var(--green);background:var(--green)22;color:var(--green);cursor:pointer;font-size:11px;font-family:inherit">✓ Valider</button>
+    </div>` : '')
+    + rows.map(r => `<div style="padding:6px 0;border-bottom:1px solid var(--border);">
       <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px">${r.label}</div>
       <div style="font-size:13px;color:var(--text)">${r.value}</div>
     </div>`).join('')
-    + (updated ? `<div style="font-size:10px;color:var(--faint);margin-top:6px">Last updated ${updated}</div>` : '');
+    + (updated ? `<div style="font-size:10px;color:var(--faint);margin-top:6px">${fb.validated?'Validated':'Drafted'} ${updated}</div>` : '');
 }
 
 // ── Helpers for PIN screen ─────────────────────────────────────────────────
@@ -2772,6 +2778,29 @@ async function restoreProfileFromBackend(stravaId) {
   } catch(e) {
     console.log('[profile] could not restore from backend:', e.message);
   }
+}
+
+// ── Validate AI feedback ───────────────────────────────────────────────────
+async function validateFeedback(refId, monthKey) {
+  try {
+    const ref = COACH_STATE.referees.find(r => r.id === refId);
+    if (!ref) return;
+    const fb = (ref.feedback || {})[monthKey];
+    if (!fb) return;
+    // Mark as validated (removes draft flag)
+    const updated = { ...fb, draft: false, validated: true, validatedAt: new Date().toISOString() };
+    await fetch(`${BACKEND_URL}/coach/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
+      body: JSON.stringify({ refereeId: refId, monthKey, feedback: updated })
+    });
+    // Update local state
+    if (!ref.feedback) ref.feedback = {};
+    ref.feedback[monthKey] = updated;
+    // Re-render
+    renderDetail();
+    console.log('[feedback] validated for', ref.name, monthKey);
+  } catch(e) { console.log('[feedback] validate error:', e.message); }
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
