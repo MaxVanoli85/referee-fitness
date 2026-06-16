@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v52</title>
+<title>Referee Fitness v54</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v52</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v54</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v52</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v54</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v52</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v54</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1002,7 +1002,8 @@ function computeStats(acts, allActs, refDate) {
     .sort((a,b) => new Date(b.start_date) - new Date(a.start_date));
 
   const isHistorical = refDate != null;
-  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio, isHistorical,
+  const z5 = computeWeeklyZ5(acts, null);
+  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio, isHistorical, z5,
           categories, catBreakdown, zones, weeks, recent};
 }
 
@@ -2413,7 +2414,7 @@ function renderCAFDashboard() {
             <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-bottom:6px;gap:1px">${s.categories.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>
             ${s.categories.map(c=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><span style="font-size:12px;width:18px;text-align:center">${c.icon}</span><span style="font-size:12px;color:var(--text);flex:1">${c.label}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:26px;text-align:right">${c.count}x</span><div style="width:70px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;"><div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color}"></div></div><span style="font-size:11px;color:var(--faint);width:26px;text-align:right">${Math.round(c.count/totalC*100)}%</span></div>`).join('')}
           </div>`:''}
-          ${(()=>{const fb=r.feedback?.[month];return fb?`<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Coach report</div>${fb.load?`<div style="font-size:12px;color:var(--text)">${fb.load}</div>`:''} ${fb.fitness?`<div style="font-size:12px;color:var(--text)">${fb.fitness}</div>`:''} ${fb.recommendation?`<div style="font-size:12px;color:var(--text)">${fb.recommendation}</div>`:''} ${fb.notes?`<div style="font-size:12px;color:var(--muted);font-style:italic">"${fb.notes}"</div>`:''}</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--faint)">No coach report for this month.</div>`})()}
+          ${(()=>{const fb=r.feedback?.[month];const validFb=fb&&(!fb.draft||fb.validated)?fb:null;return validFb?`<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Coach report</div>${validFb.load?`<div style="font-size:12px;color:var(--text)">${validFb.load}</div>`:''} ${validFb.fitness?`<div style="font-size:12px;color:var(--text)">${validFb.fitness}</div>`:''} ${validFb.recommendation?`<div style="font-size:12px;color:var(--text)">${validFb.recommendation}</div>`:''} ${validFb.notes?`<div style="font-size:12px;color:var(--muted);font-style:italic">"${validFb.notes}"</div>`:''}</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--faint)">No validated report for this month.</div>`})()}
         </div>`;
       }).join('');
       return `<div style="margin-bottom:1.5rem;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">${lbl} <span style="color:var(--faint);font-size:10px">(${items.length})</span></div>${rows}</div>`;
@@ -2806,6 +2807,42 @@ async function validateFeedback(refId, monthKey) {
     renderDetail();
     console.log('[feedback] validated for', ref.name, monthKey);
   } catch(e) { console.log('[feedback] validate error:', e.message); }
+}
+
+// ── Weekly Z5 computation ──────────────────────────────────────────────────
+function computeWeeklyZ5(acts, profile) {
+  // Returns { avgZ5PerWeek, weeksOnTarget, totalWeeks }
+  // Target: >= 5 min Z5 per week
+  const thr   = getZoneThresholds(profile || REF_STATE.profile || null);
+  const maxHR = getMaxHR(profile || REF_STATE.profile || null) || 185;
+
+  // Group Z5 seconds by ISO week (Mon–Sun)
+  const weekMap = {};
+  acts.forEach(a => {
+    if (!a.start_date) return;
+    const d   = new Date(a.start_date);
+    const dow = (d.getDay() + 6) % 7; // 0=Mon
+    const mon = new Date(d); mon.setDate(d.getDate() - dow); mon.setHours(0,0,0,0);
+    const wk  = mon.toISOString().slice(0,10);
+    if (!weekMap[wk]) weekMap[wk] = 0;
+
+    // Use exact hr_zones if available, otherwise estimate
+    let z5secs = 0;
+    if (a.hr_zones && a.hr_zones.length === 5) {
+      z5secs = a.hr_zones[4] || 0;
+    } else if (a.average_heartrate) {
+      // Estimate: use approxZonesSingle
+      const mins = getActivityZones(a, profile);
+      if (mins) z5secs = (mins[4] || 0) * 60;
+    }
+    weekMap[wk] += z5secs;
+  });
+
+  const weeks = Object.values(weekMap);
+  if (!weeks.length) return { avgZ5PerWeek: 0, weeksOnTarget: 0, totalWeeks: 0 };
+  const avgZ5PerWeek  = Math.round(weeks.reduce((s,v)=>s+v,0) / weeks.length / 60); // minutes
+  const weeksOnTarget = weeks.filter(s => s/60 >= 5).length;
+  return { avgZ5PerWeek, weeksOnTarget, totalWeeks: weeks.length };
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────
