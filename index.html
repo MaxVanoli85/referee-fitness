@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v56</title>
+<title>Referee Fitness v57</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1151,7 +1151,7 @@ function renderStats(containerId, s) {
     <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:12px;color:var(--muted)">h</span>${m}<span style="font-size:12px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks &amp; hikes</div></div>
     <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${s.totalRunKm}<span style="font-size:12px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
     <div class="stat-card"><div class="stat-label">Acute load</div><div class="stat-value">${s.acuteLoad}<span style="font-size:12px;color:var(--muted)">${s.usingTrimp?'TRIMP':'min'}</span></div><div class="stat-sub">vs ${s.chronicLoad} chronic</div></div>
-    <div class="stat-card"><div class="stat-label">A:C ratio</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>
+    <div class="stat-card"><div class="stat-label">A:C ratio ${s.usingTrimp?'<span style=\'color:var(--green);font-size:10px\'>● TRIMP</span>':'<span style=\'color:var(--faint);font-size:10px\'>○ est.</span>'}</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>
     ${z5 ? `<div class="stat-card"><div class="stat-label">Z5 avg/week</div><div class="stat-value ${z5c}">${z5.avgZ5PerWeek}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">${z5.weeksOnTarget}/${z5.totalWeeks} weeks ≥5min</div></div>` : ''}`;
 }
 
@@ -1660,7 +1660,7 @@ function renderRefereeGrid() {
                 <div class="ref-stats">
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
-          <div class="ref-stat">A:C<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
+          <div class="ref-stat">A:C ${s.usingTrimp?'<span style="color:var(--green);font-size:9px">●</span>':'<span style="color:var(--faint);font-size:9px">○</span>'}<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
           <div class="ref-stat">Feeling<br><span style="font-size:18px">${feelingIcon}</span></div>
         </div>
         ${s.totalSessions>0 ? `<div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
