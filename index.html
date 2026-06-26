@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v55</title>
+<title>Referee Fitness v56</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v55</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v55</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v55</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v56</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -946,6 +946,11 @@ function actLoad(a) {
   const cat = getCategory(a).key;
   if (cat === 'alternative') return 0;
   if (EXCLUDE_FROM_LOAD.includes(a.type) || EXCLUDE_FROM_LOAD.includes(a.sport_type)) return 0;
+  // Use Banister TRIMP from HR stream when available (gold standard)
+  if (typeof a.trimp === 'number' && a.trimp > 0) {
+    return a.trimp;
+  }
+  // Fallback: category-weighted minutes
   const w = LOAD_WEIGHTS[cat] !== undefined ? LOAD_WEIGHTS[cat] : 0.5;
   return Math.round((a.moving_time || a.elapsed_time || 0) / 60 * w);
 }
@@ -1003,7 +1008,8 @@ function computeStats(acts, allActs, refDate) {
 
   const isHistorical = refDate != null;
   const z5 = computeWeeklyZ5(acts, null);
-  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio, isHistorical, z5,
+  const usingTrimp = source.some(a => typeof a.trimp === 'number' && a.trimp > 0);
+  return {totalSessions, totalMins, totalRunKm, acuteLoad, chronicLoad, ratio, isHistorical, z5, usingTrimp,
           categories, catBreakdown, zones, weeks, recent};
 }
 
@@ -1144,7 +1150,7 @@ function renderStats(containerId, s) {
     <div class="stat-card"><div class="stat-label">Sessions</div><div class="stat-value">${s.totalSessions}</div><div class="stat-sub">this month</div></div>
     <div class="stat-card"><div class="stat-label">Active time</div><div class="stat-value">${h}<span style="font-size:12px;color:var(--muted)">h</span>${m}<span style="font-size:12px;color:var(--muted)">m</span></div><div class="stat-sub">excl. walks &amp; hikes</div></div>
     <div class="stat-card"><div class="stat-label">Running km</div><div class="stat-value">${s.totalRunKm}<span style="font-size:12px;color:var(--muted)">km</span></div><div class="stat-sub">runs only</div></div>
-    <div class="stat-card"><div class="stat-label">Acute load</div><div class="stat-value">${s.acuteLoad}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">vs ${s.chronicLoad}min chronic</div></div>
+    <div class="stat-card"><div class="stat-label">Acute load</div><div class="stat-value">${s.acuteLoad}<span style="font-size:12px;color:var(--muted)">${s.usingTrimp?'TRIMP':'min'}</span></div><div class="stat-sub">vs ${s.chronicLoad} chronic</div></div>
     <div class="stat-card"><div class="stat-label">A:C ratio</div><div class="stat-value ${rc}">${s.ratio}</div><div class="stat-sub">${s.ratio>1.5?'High risk':s.ratio>1.2?'Monitor':'On track'}</div></div>
     ${z5 ? `<div class="stat-card"><div class="stat-label">Z5 avg/week</div><div class="stat-value ${z5c}">${z5.avgZ5PerWeek}<span style="font-size:12px;color:var(--muted)">min</span></div><div class="stat-sub">${z5.weeksOnTarget}/${z5.totalWeeks} weeks ≥5min</div></div>` : ''}`;
 }
