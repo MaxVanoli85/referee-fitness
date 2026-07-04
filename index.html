@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v58</title>
+<title>Referee Fitness v59</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -2365,7 +2365,12 @@ function renderCAFDashboard() {
   const allActs = refs.flatMap(r => r.activities||[]);
   const feedbackMonths = refs.flatMap(r => Object.keys(r.feedback||{}));
 
-  if (!_cafSelectedSeason) _cafSelectedSeason = getSeasonKey();
+  if (!_cafSelectedSeason) {
+    // Default to the season containing the most recent activity, not just today's season
+    const allDates = allActs.filter(a=>a&&actDate(a)).map(a=>actDate(a)).sort();
+    const latest = allDates.length ? allDates[allDates.length-1] : null;
+    _cafSelectedSeason = latest ? getSeasonKey(latest) : getSeasonKey();
+  }
 
   const seasonMonths = getSeasonMonths(_cafSelectedSeason);
   const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
@@ -2485,9 +2490,14 @@ async function loadRefereeFeedback(monthKey) {
 // ── Season helpers ─────────────────────────────────────────────────────────
 // Season runs Jul 1 → Jun 30. Season "2025/26" starts Jul 1 2025.
 function getSeasonKey(date) {
-  const d = date ? new Date(date) : new Date();
-  const y = d.getFullYear();
-  const m = d.getMonth(); // 0=Jan
+  let y, m;
+  if (date) {
+    const parts = String(date).match(/^(\d{4})-(\d{2})/);
+    if (parts) { y = +parts[1]; m = +parts[2] - 1; }
+    else { const d = new Date(date); y = d.getFullYear(); m = d.getMonth(); }
+  } else {
+    const d = new Date(); y = d.getFullYear(); m = d.getMonth();
+  }
   // Jul-Dec → season starts this year; Jan-Jun → season started last year
   const startYear = m >= 6 ? y : y - 1;
   return `${startYear}/${String(startYear + 1).slice(2)}`;
