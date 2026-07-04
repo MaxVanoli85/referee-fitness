@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v57</title>
+<title>Referee Fitness v58</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -456,7 +456,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v57</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v58</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -880,6 +880,10 @@ async function fetchActivitiesAPI(token) {
 // ── Analytics ──────────────────────────────────────────────────────────
 function getMonthKey(d) {
   if(!d) return 'unknown';
+  // Strava's start_date_local has a misleading 'Z' — it's actually local time.
+  // Parse the date parts directly to avoid timezone shifts.
+  const m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}`;
   const dt = new Date(d);
   if(isNaN(dt.getTime())) return 'unknown';
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
@@ -1131,12 +1135,16 @@ function approxZonesSingle(act) {
   return mins;
 }
 
+function actDate(a) {
+  // Prefer start_date_local (already in athlete's timezone, no shift) 
+  return a.start_date_local || a.start_date;
+}
 function actsForMonth(acts,key) {
-  return acts.filter(a=>a&&a.start_date&&getMonthKey(a.start_date)===key&&key!=='unknown');
+  return acts.filter(a=>a&&actDate(a)&&getMonthKey(actDate(a))===key&&key!=='unknown');
 }
 
 function availableMonths(acts) {
-  return [...new Set(acts.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'))]
+  return [...new Set(acts.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))).filter(k=>k!=='unknown'))]
     .sort().reverse().slice(0,6);
 }
 
@@ -1575,7 +1583,7 @@ function renderCoachDashboard() {
 
   // Find valid months in selected season
   const seasonMonths = getSeasonMonths(_coachSelectedSeason);
-  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
   const fbMonthSet   = new Set(feedbackMonths);
   const validMonths  = seasonMonths.filter(m => dataMonths.has(m) || fbMonthSet.has(m));
 
@@ -1645,7 +1653,7 @@ function renderRefereeGrid() {
         ${(()=>{
           const cardSeason = _coachSelectedSeason || getSeasonKey();
           const seasonMths = getSeasonMonths(cardSeason);
-          const dataMths   = new Set((r.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'));
+          const dataMths   = new Set((r.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))).filter(k=>k!=='unknown'));
           const availMths  = seasonMths.filter(m => dataMths.has(m));
           const curM       = getRefMonth(r.id) || availMths[0] || '';
           return `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin:8px 0 4px">${getSeasonLabel(cardSeason)}</div>
@@ -1752,7 +1760,7 @@ function selectDetailSeason(key) {
   const ref = COACH_STATE.referees.find(r=>r.id===COACH_STATE.selectedReferee);
   if (!ref) return;
   const seasonMonths = getSeasonMonths(key);
-  const dataMonths = new Set((ref.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const dataMonths = new Set((ref.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
   const fbMonths = new Set(Object.keys(ref.feedback||{}));
   const valid = seasonMonths.filter(m => dataMonths.has(m) || fbMonths.has(m));
   COACH_STATE.selectedMonth = valid[0] || COACH_STATE.selectedMonth;
@@ -1777,7 +1785,7 @@ function renderDetail() {
   const detailMonthEl = document.getElementById('detail-month-selector');
   if (detailMonthEl) {
     const allM = [...new Set((ref.activities||[]).filter(a=>a&&a.start_date)
-      .map(a=>getMonthKey(a.start_date)).filter(k=>k!=='unknown'))].sort().reverse().slice(0,12);
+      .map(a=>getMonthKey(actDate(a))).filter(k=>k!=='unknown'))].sort().reverse().slice(0,12);
     detailMonthEl.innerHTML = allM.map(k => `
       <button onclick="selectDetailMonth('${k}')"
         style="padding:2px 8px;border-radius:var(--radius-sm);border:1px solid ${k===month?'var(--orange-border)':'var(--border)'};background:${k===month?'var(--orange-dim)':'none'};color:${k===month?'var(--orange)':'var(--muted)'};cursor:pointer;font-size:11px;font-family:inherit;">
@@ -2360,7 +2368,7 @@ function renderCAFDashboard() {
   if (!_cafSelectedSeason) _cafSelectedSeason = getSeasonKey();
 
   const seasonMonths = getSeasonMonths(_cafSelectedSeason);
-  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
   const allFbMonths = new Set(feedbackMonths);
   const validMonths = seasonMonths.filter(m => dataMonths.has(m) || allFbMonths.has(m));
   if (!COACH_STATE.selectedMonth || !validMonths.includes(COACH_STATE.selectedMonth)) {
@@ -2405,7 +2413,8 @@ function renderCAFDashboard() {
         const profileBits=[p.age?p.age+' yrs':null,p.height?p.height+' cm':null,p.weight?p.weight+' kg':null,getRoleLabel(p)||null].filter(Boolean);
         const maxC=Math.max(...s.categories.map(c=>c.count),1);
         const totalC=s.categories.reduce((t,c)=>t+c.count,0)||1;
-        return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:8px;">
+        const noData = s.totalSessions === 0;
+        return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:8px;${noData?'opacity:0.6':''}">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             ${p.picture?`<img src="${p.picture}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid ${color}55;flex-shrink:0">`:`<div style="width:38px;height:38px;border-radius:50%;background:${color}22;border:1px solid ${color}55;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:${color};flex-shrink:0">${initials}</div>`}
             <div style="flex:1;min-width:120px">
@@ -2419,6 +2428,7 @@ function renderCAFDashboard() {
               <div style="text-align:center"><div style="font-size:10px;color:var(--muted)">Feeling</div><div style="font-size:18px">${feelingIcon}</div></div>
             </div>
           </div>
+          ${s.totalSessions===0?`<div style="margin-top:8px;font-size:12px;color:var(--faint);font-style:italic">No activities recorded this month.</div>`:''}
           ${s.categories.length?`<div style="margin-top:8px;">
             <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-bottom:6px;gap:1px">${s.categories.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>
             ${s.categories.map(c=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><span style="font-size:12px;width:18px;text-align:center">${c.icon}</span><span style="font-size:12px;color:var(--text);flex:1">${c.label}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:26px;text-align:right">${c.count}x</span><div style="width:70px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;"><div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color}"></div></div><span style="font-size:11px;color:var(--faint);width:26px;text-align:right">${Math.round(c.count/totalC*100)}%</span></div>`).join('')}
@@ -2611,7 +2621,7 @@ function renderRefSeasonStats(allActs) {
 function renderRefMonthSelector(allActs) {
   // Show only months within the selected season that have data or feedback
   const seasonMonths = getSeasonMonths(_refSelectedSeason);
-  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const dataMonths = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
   const visibleMonths = seasonMonths.filter(m => dataMonths.has(m));
   if (!visibleMonths.length) {
     document.getElementById('ref-month-controls').innerHTML =
@@ -2657,7 +2667,7 @@ function renderSeasonMonthSelectors(seasonElId, monthElId, allActs, feedbackMont
 
   // Month selector — only months in selected season that have data or feedback
   const seasonMonths = getSeasonMonths(selectedSeason);
-  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(a.start_date)));
+  const dataMonths   = new Set(allActs.filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))));
   const allFbMonths  = new Set(feedbackMonths);
   const visibleMonths = seasonMonths.filter(m => dataMonths.has(m) || allFbMonths.has(m));
 
