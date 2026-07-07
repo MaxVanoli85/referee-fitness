@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v59</title>
+<title>Referee Fitness v60</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v60</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v60</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -410,6 +410,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               onclick="openFeedbackModal(COACH_STATE.selectedReferee, document.getElementById('detail-name').textContent, COACH_STATE.selectedMonth)">
               ✏ Feedback
             </button>
+            <button id="gen-ai-btn" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--purple,#7f77dd);background:#7f77dd22;color:#7f77dd;cursor:pointer;font-size:12px;font-family:inherit"
+              onclick="generateAIFeedback()">
+              🤖 Générer IA
+            </button>
             <button class="close-detail" onclick="closeDetail()">✕ Close</button>
           </div>
         </div>
@@ -456,7 +460,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v59</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v60</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -2812,6 +2816,30 @@ async function restoreProfileFromBackend(stravaId) {
     console.log('[profile] restored from backend:', final);
   } catch(e) {
     console.log('[profile] could not restore from backend:', e.message);
+  }
+}
+
+// ── Generate AI feedback on demand ─────────────────────────────────────────
+async function generateAIFeedback() {
+  const month = COACH_STATE.selectedMonth;
+  if (!month) { alert('Please select a month first.'); return; }
+  const btn = document.getElementById('gen-ai-btn');
+  const monthLabel = getMonthLabel(month);
+  if (!confirm(`Générer les rapports IA pour tous les arbitres connectés — ${monthLabel} ?\n\nCela peut prendre 1-2 minutes. Les rapports déjà validés ne seront pas écrasés.`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Génération…'; }
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/generate-feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
+      body: JSON.stringify({ monthKey: month })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Erreur: ' + (data.error||'inconnue')); return; }
+    alert(`Génération lancée pour ${monthLabel}.\n\nLes rapports apparaîtront dans 1-2 minutes. Recharge la page (ou reclique sur l'arbitre) pour les voir, puis valide-les.`);
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 Générer IA'; }
   }
 }
 
