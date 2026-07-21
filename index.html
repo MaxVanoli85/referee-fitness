@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v63</title>
+<title>Referee Fitness v64</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -464,7 +464,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -622,10 +622,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
           <option value="Rest week recommended">Rest week recommended</option>
           <option value="Individual meeting recommended">Individual meeting recommended</option>
         </select>
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Additional notes</div>
-        <textarea id="fb-notes" placeholder="Free text notes…" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);resize:vertical;min-height:80px;"></textarea>
       </div>
     </div>
     <div id="fb-save-msg" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px;"></div>
@@ -1868,7 +1864,7 @@ function renderDetail() {
   if (vaBtn && month) {
     const pendingCount = COACH_STATE.referees.filter(r => {
       const fb = (r.feedback || {})[month];
-      return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes);
+      return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation);
     }).length;
     vaBtn.textContent = pendingCount > 0 ? `\u2713 Tout valider (${pendingCount})` : '\u2713 Tout valider';
     vaBtn.style.opacity = pendingCount > 0 ? '1' : '0.5';
@@ -2320,7 +2316,6 @@ function openFeedbackModal(refereeId, refereeName, monthKey) {
   document.getElementById('fb-load').value           = existing.load           || '';
   document.getElementById('fb-fitness').value        = existing.fitness        || '';
   document.getElementById('fb-recommendation').value = existing.recommendation || '';
-  document.getElementById('fb-notes').value          = existing.notes          || '';
   document.getElementById('fb-save-msg').textContent = '';
   document.getElementById('feedback-modal').style.display = 'flex';
 }
@@ -2333,7 +2328,6 @@ async function saveFeedback() {
     load:           document.getElementById('fb-load').value,
     fitness:        document.getElementById('fb-fitness').value,
     recommendation: document.getElementById('fb-recommendation').value,
-    notes:          document.getElementById('fb-notes').value,
   };
   try {
     console.log('[feedback] refereeId='+_feedbackRefereeId+' monthKey='+_feedbackMonthKey+' pin='+COACH_STATE.pin);
@@ -2364,7 +2358,7 @@ function renderFeedbackSection(containerId, ref, monthKey) {
   const el = document.getElementById(containerId);
   if (!el) return;
   const fb = ref?.feedback?.[monthKey];
-  if (!fb || (!fb.load && !fb.fitness && !fb.recommendation && !fb.notes)) {
+  if (!fb || (!fb.load && !fb.fitness && !fb.recommendation)) {
     el.innerHTML = '<div style="font-size:12px;color:var(--faint)">No feedback yet for this month.</div>';
     return;
   }
@@ -2373,7 +2367,6 @@ function renderFeedbackSection(containerId, ref, monthKey) {
     fb.load           ? {label:'Load assessment', value:fb.load}           : null,
     fb.fitness        ? {label:'Fitness status',  value:fb.fitness}        : null,
     fb.recommendation ? {label:'Recommendation',  value:fb.recommendation} : null,
-    fb.notes          ? {label:'Notes',           value:fb.notes}          : null,
   ].filter(Boolean);
   const updated = fb.updatedAt
     ? new Date(fb.updatedAt).toLocaleDateString('fr-BE',{day:'numeric',month:'short',year:'numeric'}) : '';
@@ -2531,7 +2524,7 @@ function renderCAFDashboard() {
             <div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-bottom:6px;gap:1px">${s.categories.map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px"></div>`).join('')}</div>
             ${s.categories.map(c=>`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px;"><span style="font-size:12px;width:18px;text-align:center">${c.icon}</span><span style="font-size:12px;color:var(--text);flex:1">${c.label}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;width:26px;text-align:right">${c.count}x</span><div style="width:70px;height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;"><div style="width:${Math.round(c.count/maxC*100)}%;height:100%;background:${c.color}"></div></div><span style="font-size:11px;color:var(--faint);width:26px;text-align:right">${Math.round(c.count/totalC*100)}%</span></div>`).join('')}
           </div>`:''}
-          ${(()=>{const fb=r.feedback?.[month];const validFb=fb&&(!fb.draft||fb.validated)?fb:null;return validFb?`<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Coach report</div>${validFb.load?`<div style="font-size:12px;color:var(--text)">${validFb.load}</div>`:''} ${validFb.fitness?`<div style="font-size:12px;color:var(--text)">${validFb.fitness}</div>`:''} ${validFb.recommendation?`<div style="font-size:12px;color:var(--text)">${validFb.recommendation}</div>`:''} ${validFb.notes?`<div style="font-size:12px;color:var(--muted);font-style:italic">"${validFb.notes}"</div>`:''}</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--faint)">No validated report for this month.</div>`})()}
+          ${(()=>{const fb=r.feedback?.[month];const validFb=fb&&(!fb.draft||fb.validated)?fb:null;return validFb?`<div style="margin-top:8px;padding:7px 10px;background:var(--bg3);border-radius:var(--radius-sm);border-left:3px solid var(--orange)"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Coach report</div>${validFb.load?`<div style="font-size:12px;color:var(--text)">${validFb.load}</div>`:''} ${validFb.fitness?`<div style="font-size:12px;color:var(--text)">${validFb.fitness}</div>`:''} ${validFb.recommendation?`<div style="font-size:12px;color:var(--text)">${validFb.recommendation}</div>`:''}</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--faint)">No validated report for this month.</div>`})()}
         </div>`;
       }).join('');
       return `<div style="margin-bottom:1.5rem;"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)">${lbl} <span style="color:var(--faint);font-size:10px">(${items.length})</span></div>${rows}</div>`;
@@ -2551,7 +2544,7 @@ async function loadRefereeFeedback(monthKey) {
     if (!res.ok) { section.style.display = 'none'; return; }
     const data = await res.json();
     const fb = data.feedback;
-    if (!fb || (!fb.load && !fb.fitness && !fb.recommendation && !fb.notes)) {
+    if (!fb || (!fb.load && !fb.fitness && !fb.recommendation)) {
       section.style.display = 'none';
       return;
     }
@@ -2565,7 +2558,6 @@ async function loadRefereeFeedback(monthKey) {
       fb.load           ? {label:'Load assessment', value: fb.load}           : null,
       fb.fitness        ? {label:'Fitness status',  value: fb.fitness}        : null,
       fb.recommendation ? {label:'Recommendation',  value: fb.recommendation} : null,
-      fb.notes          ? {label:'Notes',           value: fb.notes}          : null,
     ].filter(Boolean);
     const updated = fb.updatedAt
       ? new Date(fb.updatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}) : '';
@@ -2963,7 +2955,7 @@ async function validateAllFeedback() {
   // Count pending drafts locally to show a meaningful prompt
   const pending = COACH_STATE.referees.filter(r => {
     const fb = (r.feedback || {})[month];
-    return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes);
+    return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation);
   });
   if (!pending.length) { alert(`Aucun rapport \u00e0 valider pour ${monthLabel}.`); return; }
   if (!confirm(`Valider les ${pending.length} rapport(s) en attente pour ${monthLabel} ?\n\nIls deviendront visibles par les arbitres et la CAF.`)) return;
@@ -2981,7 +2973,7 @@ async function validateAllFeedback() {
     // Update local state so the UI reflects it immediately
     COACH_STATE.referees.forEach(r => {
       const fb = (r.feedback || {})[month];
-      if (fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes)) {
+      if (fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation)) {
         r.feedback[month] = { ...fb, draft: false, validated: true, validatedAt: new Date().toISOString() };
       }
     });
