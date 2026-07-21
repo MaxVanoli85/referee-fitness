@@ -27,6 +27,17 @@ setInterval(() => {
 
 // ── Scheduled daily sync ────────────────────────────────────────────────────
 // Runs every day at 02:00 Luxembourg time (UTC+1/+2)
+// Overflow-safe setTimeout: setTimeout max is 2^31-1 ms (~24.8 days).
+// Anything larger silently fires after 1ms — the bug that caused runaway egress.
+const MAX_TIMEOUT_MS = 2000000000; // ~23 days, safely under the 32-bit limit
+function safeSetTimeout(fn, ms) {
+  if (ms > MAX_TIMEOUT_MS) {
+    setTimeout(() => safeSetTimeout(fn, ms - MAX_TIMEOUT_MS), MAX_TIMEOUT_MS);
+  } else {
+    setTimeout(fn, Math.max(0, ms));
+  }
+}
+
 function scheduleDailySync() {
   const now = new Date();
   // Target: 02:00 CET (UTC+1) = 01:00 UTC, or CEST (UTC+2) = 00:00 UTC
@@ -36,13 +47,28 @@ function scheduleDailySync() {
   if (next <= now) next.setUTCDate(next.getUTCDate() + 1); // push to tomorrow
   const msUntil = next - now;
   console.log(`[cron] next daily sync in ${Math.round(msUntil/60000)} minutes (${next.toISOString()})`);
-  setTimeout(async () => {
+  safeSetTimeout(async () => {
     await runDailySync();
     scheduleDailySync(); // reschedule for next day
   }, msUntil);
 }
 
+let _dailySyncRunning = false;
+let _lastDailySyncRun = 0;
+
 async function runDailySync() {
+  // SAFETY: prevent re-entry and rapid repeat runs
+  if (_dailySyncRunning) {
+    console.log('[cron] already running — skipping duplicate call');
+    return;
+  }
+  const sinceLast = Date.now() - _lastDailySyncRun;
+  if (sinceLast < 60 * 60 * 1000) { // min 1 hour between runs
+    console.log('[cron] ran ' + Math.round(sinceLast/60000) + 'min ago — skipping (min 1h between runs)');
+    return;
+  }
+  _dailySyncRunning = true;
+  _lastDailySyncRun = Date.now();
   console.log('[cron] starting daily sync —', new Date().toISOString());
   try {
     const refs = await dbGetAll();
@@ -64,6 +90,8 @@ async function runDailySync() {
     console.log(`[cron] daily sync complete — ${success} ok, ${failed} failed`);
   } catch(e) {
     console.log('[cron] daily sync error:', e.message);
+  } finally {
+    _dailySyncRunning = false;
   }
 }
 
@@ -79,16 +107,10 @@ function scheduleMonthlyFeedback() {
   if (next <= now) next.setUTCMonth(next.getUTCMonth() + 1);
   const msUntil = next - now;
   console.log(`[ai-feedback] next run in ${Math.round(msUntil/3600000)}h (${next.toISOString()})`);
-  // setTimeout max is ~24.8 days (2^31 ms). For longer waits, chunk it.
-  const MAX_TIMEOUT = 2000000000; // ~23 days
-  if (msUntil > MAX_TIMEOUT) {
-    setTimeout(() => scheduleMonthlyFeedback(), MAX_TIMEOUT);
-  } else {
-    setTimeout(async () => {
-      await runMonthlyFeedback();
-      scheduleMonthlyFeedback();
-    }, msUntil);
-  }
+  safeSetTimeout(async () => {
+    await runMonthlyFeedback();
+    scheduleMonthlyFeedback();
+  }, msUntil);
 }
 
 
@@ -124,6 +146,29 @@ async function generateRefereeFeedback(ref, monthKey, prevMonthKey) {
     return 'Z5';
   }
 
+  // Zone-aware classification from exact HR stream — mirrors the frontend logic.
+  function zoneCat(a) {
+    const z = a.hr_zones;
+    if (!z || z.length !== 5) return null;
+    const secs = z.reduce((s,v)=>s+(v||0),0);
+    if (secs < 300) return null;
+    const mins = secs/60;
+    const pct = z.map(s=>(s||0)/secs);
+    const z5min = (z[4]||0)/60, z4min = (z[3]||0)/60;
+    const hiFrac = pct[3]+pct[4];
+    const midFrac = pct[2]+pct[3]+pct[4];
+    const easyFrac = pct[0]+pct[1];
+    if (mins>=70 && mins<=140 && midFrac>=0.55 && (z4min+z5min)>=8) return 'match';
+    if (z5min>=4 || hiFrac>=0.20 || (z5min>=2 && z4min>=6)) return 'high';
+    if (pct[2]>=0.30 && hiFrac<0.20) return 'medium';
+    if (midFrac>=0.35 && easyFrac<0.70) return 'medium';
+    if (pct[0]>=0.50 && hiFrac<0.03) return 'recovery';
+    if (easyFrac>=0.85 && hiFrac<0.03 && pct[1]<0.55) return 'recovery';
+    if (easyFrac>=0.70 && pct[1]>=0.35 && mins>=40) return 'endurance';
+    if (easyFrac>=0.70) return mins>=40 ? 'endurance' : 'recovery';
+    return null;
+  }
+
   function catKey(a) {
     if (a._cat) return a._cat;
     const name = (a.name||'').toLowerCase();
@@ -132,6 +177,8 @@ async function generateRefereeFeedback(ref, monthKey, prevMonthKey) {
     const ALT = ['Ride','VirtualRide','Swim','Walk','Hike','Rowing','Elliptical','WeightTraining','Yoga','Pilates','Crossfit'];
     if (ALT.includes(a.type)||ALT.includes(a.sport_type)) return 'alternative';
     if (a.type==='WeightTraining'||a.sport_type==='WeightTraining') return 'strength';
+    const zc = zoneCat(a);
+    if (zc) return zc;
     const hr = a.average_heartrate||0;
     const dur = (a.moving_time||a.elapsed_time||0)/60;
     if (hr>=155&&dur>=75&&dur<=130) return 'match';
@@ -256,13 +303,28 @@ Réponds UNIQUEMENT avec le JSON, sans texte avant ou après.`;
       res.on('data', c => d += c);
       res.on('end', () => {
         try {
+          if (res.statusCode !== 200) {
+            console.log('[ai-feedback] API status ' + res.statusCode + ':', d.slice(0, 300));
+            resolve(null);
+            return;
+          }
           const r = JSON.parse(d);
+          if (r.error) {
+            console.log('[ai-feedback] API error:', JSON.stringify(r.error).slice(0, 300));
+            resolve(null);
+            return;
+          }
           const text = r.content?.[0]?.text || '';
+          if (!text) {
+            console.log('[ai-feedback] empty text. Full response:', JSON.stringify(r).slice(0, 300));
+            resolve(null);
+            return;
+          }
           const clean = text.replace(/```json|```/g, '').trim();
           const fb = JSON.parse(clean);
           resolve(fb);
         } catch(e) {
-          console.log('[ai-feedback] parse error:', e.message);
+          console.log('[ai-feedback] parse error:', e.message, '| raw:', d.slice(0, 200));
           resolve(null);
         }
       });
@@ -273,11 +335,27 @@ Réponds UNIQUEMENT avec le JSON, sans texte avant ou après.`;
   });
 }
 
+let _monthlyFeedbackRunning = false;
+let _lastMonthlyFeedbackRun = 0;
+
 async function runMonthlyFeedback() {
+  // SAFETY: prevent re-entry and rapid repeat runs (guards against scheduler bugs)
+  if (_monthlyFeedbackRunning) {
+    console.log('[ai-feedback] already running — skipping duplicate call');
+    return;
+  }
+  const sinceLast = Date.now() - _lastMonthlyFeedbackRun;
+  if (sinceLast < 6 * 60 * 60 * 1000) { // min 6 hours between runs
+    console.log('[ai-feedback] ran ' + Math.round(sinceLast/60000) + 'min ago — skipping (min 6h between runs)');
+    return;
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
     console.log('[ai-feedback] ANTHROPIC_API_KEY not set — skipping');
     return;
   }
+  _monthlyFeedbackRunning = true;
+  _lastMonthlyFeedbackRun = Date.now();
+  try {
   // Generate for the PREVIOUS month
   const now  = new Date();
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -318,6 +396,9 @@ async function runMonthlyFeedback() {
     }
   }
   console.log(`[ai-feedback] complete — ${ok} drafts generated, ${skipped} skipped`);
+  } finally {
+    _monthlyFeedbackRunning = false;
+  }
 }
 
 // Start the scheduler
@@ -337,7 +418,7 @@ function sbRequest(method, path, body) {
         'apikey':        SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
         'Content-Type':  'application/json',
-        'Prefer':        method === 'POST' ? 'return=representation' : 'return=representation',
+        'Prefer':        method === 'POST' ? 'return=representation' : 'return=minimal',
       }
     };
     if (data) opts.headers['Content-Length'] = Buffer.byteLength(data);
@@ -355,10 +436,50 @@ function sbRequest(method, path, body) {
   });
 }
 
-async function dbGetAll() {
-  const r = await sbRequest('GET', '/referees?select=*&order=created_at.asc');
-  return r.body || [];
+let _dbCache = { data: null, ts: 0 };
+const DB_CACHE_TTL = 60000; // 60 seconds — longer cache = less egress
+
+// ── Circuit breaker: hard cap on full-table reads per hour ──────────────────
+// Normal usage: a handful per hour. A runaway loop would spike to thousands.
+// This is the last line of defence against the kind of bug that burned 850GB.
+let _fullReadCount = 0;
+let _fullReadWindowStart = Date.now();
+const MAX_FULL_READS_PER_HOUR = 200;
+
+function checkReadBudget() {
+  const now = Date.now();
+  if (now - _fullReadWindowStart > 3600000) {
+    _fullReadCount = 0;
+    _fullReadWindowStart = now;
+  }
+  _fullReadCount++;
+  if (_fullReadCount > MAX_FULL_READS_PER_HOUR) {
+    console.error('[SAFETY] Full-table read budget exceeded (' + _fullReadCount +
+      '/hour). Blocking further reads to protect bandwidth. Investigate for a loop.');
+    return false;
+  }
+  if (_fullReadCount === 50 || _fullReadCount === 100 || _fullReadCount === 150) {
+    console.warn('[SAFETY] Elevated read count this hour: ' + _fullReadCount);
+  }
+  return true;
 }
+
+async function dbGetAll(force) {
+  const now = Date.now();
+  if (!force && _dbCache.data && (now - _dbCache.ts) < DB_CACHE_TTL) {
+    return _dbCache.data;
+  }
+  if (!checkReadBudget()) {
+    // Budget exhausted — serve stale cache rather than hammering Supabase
+    return _dbCache.data || [];
+  }
+  const r = await sbRequest('GET', '/referees?select=*&order=created_at.asc');
+  _dbCache = { data: r.body || [], ts: now };
+  return _dbCache.data;
+}
+
+// Invalidate cache after any write
+function invalidateDbCache() { _dbCache = { data: null, ts: 0 }; }
 
 async function dbGetByStravaId(stravaId) {
   const r = await sbRequest('GET', `/referees?strava_id=eq.${stravaId}&select=*`);
@@ -378,15 +499,20 @@ async function dbGetByFirstName(firstName) {
 }
 
 async function dbUpsert(id, fields) {
-  // PATCH existing row
+  // PATCH existing row (return=minimal → 204 No Content, no body = less egress)
   const r = await sbRequest('PATCH',
     `/referees?id=eq.${encodeURIComponent(id)}`,
     fields
   );
-  if (r.status === 404 || (r.body && Array.isArray(r.body) && r.body.length === 0)) {
-    // Row doesn't exist — insert
-    await sbRequest('POST', '/referees', { id, name: fields.name || 'Athlete', ...fields });
+  // With return=minimal, a successful PATCH returns 204. 404 or error means check existence.
+  if (r.status === 404 || r.status === 400) {
+    // Verify row exists with a lightweight id-only query
+    const check = await sbRequest('GET', `/referees?id=eq.${encodeURIComponent(id)}&select=id`);
+    if (!check.body || !check.body.length) {
+      await sbRequest('POST', '/referees', { id, name: fields.name || 'Athlete', ...fields });
+    }
   }
+  invalidateDbCache();
   return true;
 }
 
@@ -933,42 +1059,9 @@ const server = http.createServer(async (req, res) => {
         profile: mergedProfile,
         ...(stravaFirstname && ref.id.startsWith('auto_') ? { name: [stravaFirstname, stravaLastname].filter(Boolean).join(' ') } : {})
       });
-      // Fetch HR streams for recent activities with HR data (async, don't block response)
+      // Respond immediately, then fetch HR streams in background (guarded against parallel runs)
       send(res, 200, { ok: true, name: ref.name, count: activities.length });
-      // Background stream fetch after responding
-      (async () => {
-        try {
-          const freshRef = await dbGetById(ref.id);
-          console.log(`[stream] starting for ${ref.name}, has token: ${!!freshRef?.token}`);
-          if (!freshRef || !freshRef.token) { console.log('[stream] no token stored, skipping'); return; }
-          const token = await ensureFreshToken(freshRef);
-          if (!token) { console.log('[stream] could not refresh token'); return; }
-          const now = Math.floor(Date.now() / 1000);
-          const cutoff90 = now - 60 * 60 * 24 * 90;
-          const profile = freshRef.profile || {};
-          const maxHR = profile.maxhr || (profile.age ? 220 - profile.age : 185);
-          const existing = (freshRef.activities || []).reduce((m, a) => { m[String(a.id)] = a; return m; }, {});
-          const toStream = (freshRef.activities || []).filter(a =>
-            a.average_heartrate && new Date(a.start_date).getTime() / 1000 > cutoff90
-          );
-          console.log(`[stream] will fetch ${toStream.length} streams for ${freshRef.name}`);
-          let updated = false;
-          for (const act of toStream) {
-            if (act.hr_zones) continue; // already have it
-            await new Promise(r => setTimeout(r, 300));
-            const stream = await fetchHRStream(act.id, token);
-            if (stream) {
-              const zones = calcZonesFromStream(stream.hr, stream.time, maxHR);
-              if (zones) { act.hr_zones = zones; updated = true; }
-            }
-          }
-          if (updated) {
-            await dbUpsert(freshRef.id, { activities: freshRef.activities });
-            const zoneCount = freshRef.activities.filter(a=>a.hr_zones).length;
-      console.log(`[stream] background fetch complete for ${freshRef.name} — ${zoneCount} activities have hr_zones`);
-          }
-        } catch(e) { console.log('[stream] background fetch error:', e.message); }
-      })();
+      fetchStreamsInBackground({ ...ref, activities: mergedActs, profile: mergedProfile });
     } catch(e) { send(res, 500, { error: e.message }); }
     return;
   }
