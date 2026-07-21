@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v61</title>
+<title>Referee Fitness v62</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v61</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v61</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -460,7 +460,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v61</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -702,6 +702,68 @@ const EXCLUDE_FROM_LOAD  = ALTERNATIVE_TYPES;
 
 
 
+// ── Zone-aware classification ───────────────────────────────────────────────
+// Uses exact seconds-per-zone from the HR stream (act.hr_zones = [z1,z2,z3,z4,z5]).
+// This sees the *shape* of a session — intervals, match spikes, true recovery —
+// which average HR alone cannot. Returns a category key, or null if no usable
+// zone data (caller then falls back to the average-HR logic).
+function zoneCategory(act) {
+  const z = act.hr_zones;
+  if (!z || z.length !== 5) return null;
+  const secs  = z.reduce((a, b) => a + (b || 0), 0);
+  if (secs < 300) return null; // <5 min of stream data — not reliable, use fallback
+  const mins  = secs / 60;
+  const pct   = z.map(s => (s || 0) / secs); // fraction of time in each zone
+  const z5min = (z[4] || 0) / 60;
+  const z4min = (z[3] || 0) / 60;
+  const hiFrac = pct[3] + pct[4];            // Z4+Z5 share
+  const midFrac = pct[2] + pct[3] + pct[4];  // Z3+ share
+  const easyFrac = pct[0] + pct[1];          // Z1+Z2 share
+
+  // 1. Match signature: long effort, sustained Z3+ with real high-intensity bursts.
+  //    Matches mix steady running (Z3) with repeated sprints (Z4/Z5) over 70-130 min.
+  if (mins >= 70 && mins <= 140 && midFrac >= 0.55 && (z4min + z5min) >= 8) {
+    return 'match';
+  }
+
+  // 2. High intensity / intervals: meaningful time at or above Z4, or clear Z5 work.
+  //    This is the big win — an interval session with easy recoveries has a modest
+  //    average HR but real Z5 minutes. Average-HR logic misses it; this catches it.
+  if (z5min >= 4 || hiFrac >= 0.20 || (z5min >= 2 && z4min >= 6)) {
+    return 'high';
+  }
+
+  // 3. Medium intensity: tempo-style, mostly Z3 with limited Z4+.
+  if (pct[2] >= 0.30 && hiFrac < 0.20) {
+    return 'medium';
+  }
+  if (midFrac >= 0.35 && easyFrac < 0.70) {
+    return 'medium';
+  }
+
+  // 4. Recovery: Z1-dominant, or nearly all easy with negligible intensity.
+  //    Checked before endurance so a genuinely gentle session isn't mislabelled.
+  if (pct[0] >= 0.50 && hiFrac < 0.03) {
+    return 'recovery';
+  }
+  if (easyFrac >= 0.85 && hiFrac < 0.03 && pct[1] < 0.55) {
+    return 'recovery';
+  }
+
+  // 5. Endurance: predominantly Z2 with a long enough duration.
+  if (easyFrac >= 0.70 && pct[1] >= 0.35 && mins >= 40) {
+    return 'endurance';
+  }
+
+  // 6. Mixed but easy-leaning, shorter → recovery; longer → endurance.
+  if (easyFrac >= 0.70) {
+    return mins >= 40 ? 'endurance' : 'recovery';
+  }
+
+  // Otherwise let the average-HR logic decide.
+  return null;
+}
+
 // Auto-categorise a single activity by HR and pace
 function autoCategory(act) {
   // 0. Name-based match detection (highest priority)
@@ -710,6 +772,11 @@ function autoCategory(act) {
   // 1. Force by Strava type
   const forced = TYPE_FORCE[act.type] || TYPE_FORCE[act.sport_type];
   if (forced) return forced;
+
+  // 1a. Zone-aware classification from exact HR stream (preferred when available).
+  //     Falls through to the average-HR logic below when there's no usable stream.
+  const zc = zoneCategory(act);
+  if (zc) return zc;
 
   const hr    = act.average_heartrate || 0;
   const hrMax = act.max_heartrate     || 0;
