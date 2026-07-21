@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v62</title>
+<title>Referee Fitness v63</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -414,6 +414,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
               onclick="generateAIFeedback()">
               🤖 Générer IA
             </button>
+            <button id="validate-all-btn" style="padding:5px 14px;border-radius:var(--radius-sm);border:1px solid var(--green);background:var(--green)22;color:var(--green);cursor:pointer;font-size:12px;font-family:inherit"
+              onclick="validateAllFeedback()">
+              ✓ Tout valider
+            </button>
             <button class="close-detail" onclick="closeDetail()">✕ Close</button>
           </div>
         </div>
@@ -460,7 +464,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v62</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v63</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1859,6 +1863,17 @@ function renderDetail() {
   const s = computeStats(acts, ref.activities||[], getACRefDate(month));
   document.getElementById('detail-name').textContent = ref.name;
 
+  // Update "Tout valider" button with the count of pending drafts for this month
+  const vaBtn = document.getElementById('validate-all-btn');
+  if (vaBtn && month) {
+    const pendingCount = COACH_STATE.referees.filter(r => {
+      const fb = (r.feedback || {})[month];
+      return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes);
+    }).length;
+    vaBtn.textContent = pendingCount > 0 ? `\u2713 Tout valider (${pendingCount})` : '\u2713 Tout valider';
+    vaBtn.style.opacity = pendingCount > 0 ? '1' : '0.5';
+  }
+
   // Month selector in detail panel
   const detailMonthEl = document.getElementById('detail-month-selector');
   if (detailMonthEl) {
@@ -2938,6 +2953,46 @@ async function validateFeedback(refId, monthKey) {
     renderDetail();
     console.log('[feedback] validated for', ref.name, monthKey);
   } catch(e) { console.log('[feedback] validate error:', e.message); }
+}
+
+// ── Validate ALL drafts for the selected month ─────────────────────────────
+async function validateAllFeedback() {
+  const month = COACH_STATE.selectedMonth;
+  if (!month) { alert('S\u00e9lectionne d\'abord un mois.'); return; }
+  const monthLabel = getMonthLabel(month);
+  // Count pending drafts locally to show a meaningful prompt
+  const pending = COACH_STATE.referees.filter(r => {
+    const fb = (r.feedback || {})[month];
+    return fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes);
+  });
+  if (!pending.length) { alert(`Aucun rapport \u00e0 valider pour ${monthLabel}.`); return; }
+  if (!confirm(`Valider les ${pending.length} rapport(s) en attente pour ${monthLabel} ?\n\nIls deviendront visibles par les arbitres et la CAF.`)) return;
+
+  const btn = document.getElementById('validate-all-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Validation\u2026'; }
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/validate-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
+      body: JSON.stringify({ monthKey: month })
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Erreur: ' + (data.error || 'inconnue')); return; }
+    // Update local state so the UI reflects it immediately
+    COACH_STATE.referees.forEach(r => {
+      const fb = (r.feedback || {})[month];
+      if (fb && !fb.validated && (fb.load || fb.fitness || fb.recommendation || fb.notes)) {
+        r.feedback[month] = { ...fb, draft: false, validated: true, validatedAt: new Date().toISOString() };
+      }
+    });
+    renderCoachDashboard();
+    if (COACH_STATE.selectedReferee) renderDetail();
+    alert(`${data.validated} rapport(s) valid\u00e9(s) pour ${monthLabel}.`);
+  } catch(e) {
+    alert('Erreur: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '\u2713 Tout valider'; }
+  }
 }
 
 // ── Weekly Z5 computation ──────────────────────────────────────────────────
