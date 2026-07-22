@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v64</title>
+<title>Referee Fitness v65</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -464,7 +464,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v64</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -681,18 +681,60 @@ const TYPE_FORCE = {
   Hike:'recovery',
 };
 
-// Keywords in activity name that signal a match (case-insensitive)
-const MATCH_KEYWORDS = [
-  'bgl ligue','bgl','ph','d1','d2','d3','coupe','cdl',
-  'match','game','spiel','rencontre','partie',
-  ' vs ',' vs.','versus',' fc ',' fc.',
-  'united','sporting','racing','athletic','olympique',
+// ── Match detection ─────────────────────────────────────────────────────────
+// Longer phrases — safe to match anywhere in the title
+const MATCH_PHRASES = [
+  'bgl ligue','coupe','match','game','spiel','rencontre','versus','amical','friendly',
+  'united','sporting','racing','athletic','olympique','arbitrage','assistant',
 ];
+// Short tokens — whole-word only, so "ph" doesn't fire inside "physique"
+const MATCH_TOKENS = ['bgl','ph','d1','d2','d3','cdl','vs','n1','n2','n3'];
+// Club abbreviation followed by a name: "CS Grevenmacher", "FC Kehlen", "US Esch"
+const CLUB_PREFIX_RE = /\b(fc|cs|us|sc|ca|as|fcm|cse|rm)\s+[a-zà-ÿ0-9]/i;
+// Known club names — extend this list as needed
+const CLUB_NAMES = [
+  'jeunesse','fola','progres','progrès','etzella','differdange','dudelange','hostert',
+  'mondorf','rodange','wiltz','petange','pétange','hesperange','strassen','rosport',
+  'kaerjeng','käerjeng','bissen','grevenmacher','grevemacher','rumelange','schifflange',
+  'bettembourg','kehlen','mamer','steinfort','junglinster','beggen','lorentzweiler',
+  'muhlenbach','mühlenbach','titus','swift','victoria','una','avenir','union','minerva',
+];
+// Words that signal training rather than a fixture
+const TRAINING_WORDS = [
+  'footing','course','run','running','récup','recup','sortie','entrainement','entraînement',
+  'fractionn','vma','intervalle','tempo','endurance','musculation','renfo','vélo','velo',
+  'natation','marche','yoga','étirement','etirement','échauffement','echauffement',
+  'séance','seance','physique','test','repos','jogging','trail','sprint','gym',
+];
+
+function hasMatchToken(name) {
+  return MATCH_TOKENS.some(t => new RegExp('\\b' + t + '\\b', 'i').test(name));
+}
+
+// "Club A - Club B" pattern, corroborated by a match-like duration.
+// The duration check keeps titles like "Sortie longue - dimanche" from firing.
+function looksLikeFixture(act) {
+  const raw = (act.name || '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  if (TRAINING_WORDS.some(w => lower.includes(w))) return false;
+  const sep = /\s[-–—]\s/;
+  if (!sep.test(raw)) return false;
+  const parts = raw.split(sep).map(s => s.trim()).filter(Boolean);
+  if (parts.length !== 2) return false;
+  if (!parts.every(p => /[a-zà-ÿ]{3,}/i.test(p))) return false;
+  const mins = (act.moving_time || act.elapsed_time || 0) / 60;
+  return mins >= 60 && mins <= 150;
+}
 
 function isMatch(act) {
   const name = (act.name || '').toLowerCase();
-  if (MATCH_KEYWORDS.some(k => name.includes(k))) return true;
-  if (/\b\d+[-:]\d+\b/.test(name)) return true;
+  if (MATCH_PHRASES.some(k => name.includes(k))) return true;
+  if (hasMatchToken(name)) return true;
+  if (/\b\d+\s*[-:]\s*\d+\b/.test(name)) return true;      // score: 3-1, 3:1, 3 - 1
+  if (CLUB_PREFIX_RE.test(name)) return true;               // "CS Grevenmacher"
+  if (CLUB_NAMES.some(c => name.includes(c))) return true;  // known club
+  if (looksLikeFixture(act)) return true;                   // "A - B" + duration
   return false;
 }
 
