@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v68</title>
+<title>Referee Fitness v69</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v68</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v69</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v68</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v69</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -394,6 +394,21 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
             </div>
             <!-- Profile info -->
             <div id="detail-profile-badge" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+            <!-- Coach-assigned role / level -->
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Category</span>
+              <select id="detail-role-select" onchange="onCoachRoleChange()"
+                style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:11px;padding:3px 8px;border-radius:var(--radius-sm);">
+                <option value="">Role…</option>
+                <option value="Referee">Referee</option>
+                <option value="Assistant Referee">Assistant Referee</option>
+              </select>
+              <select id="detail-level-select" onchange="saveCoachLevel()"
+                style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:11px;padding:3px 8px;border-radius:var(--radius-sm);">
+                <option value="">Level…</option>
+              </select>
+              <span id="detail-level-msg" style="font-size:10px;color:var(--green)"></span>
+            </div>
             <!-- Season selector -->
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
               <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Season</span>
@@ -464,7 +479,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v68</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v69</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1694,6 +1709,9 @@ function renderCoachDashboard() {
   const connected = COACH_STATE.referees.filter(r=>r.connected).length;
   const total = COACH_STATE.referees.length;
   document.getElementById('coach-sub').textContent = `${connected} of ${total} referees connected`;
+  // Diagnostic: full list of what the server returned (open console to inspect)
+  console.log(`[coach] ${total} referees received:`,
+    COACH_STATE.referees.map(r => r.name).sort().join(', '));
 
   const allActs        = COACH_STATE.referees.flatMap(r=>r.activities||[]);
   const feedbackMonths = COACH_STATE.referees.flatMap(r=>Object.keys(r.feedback||{}));
@@ -1908,6 +1926,7 @@ function renderDetail() {
   const acts = month ? actsForMonth(ref.activities||[], month) : [];
   const s = computeStats(acts, ref.activities||[], getACRefDate(month));
   document.getElementById('detail-name').textContent = ref.name;
+  populateCoachLevelSelects(ref);
 
   // Update "Tout valider" button with the count of pending drafts for this month
   const vaBtn = document.getElementById('validate-all-btn');
@@ -2862,6 +2881,65 @@ function updateLevelOptions() {
                : role === 'Assistant Referee' ? AR_LEVELS : [];
   lvlEl.innerHTML = '<option value="">Select level…</option>'
     + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+}
+
+// ── Coach-assigned role / level ────────────────────────────────────────────
+// Lets the coach categorise referees who haven't filled in their own profile.
+// Only role+level are written; the referee's own fields are left untouched.
+function populateCoachLevelSelects(ref) {
+  const roleEl  = document.getElementById('detail-role-select');
+  const levelEl = document.getElementById('detail-level-select');
+  if (!roleEl || !levelEl) return;
+  const p = ref.profile || {};
+  roleEl.value = p.role || '';
+  const levels = p.role === 'Referee' ? REFEREE_LEVELS
+               : p.role === 'Assistant Referee' ? AR_LEVELS : [];
+  levelEl.innerHTML = '<option value="">Level…</option>'
+    + levels.map(l => `<option value="${l}"${l === (p.level||'') ? ' selected' : ''}>${l}</option>`).join('');
+  levelEl.disabled = !levels.length;
+  const msg = document.getElementById('detail-level-msg');
+  if (msg) msg.textContent = '';
+}
+
+function onCoachRoleChange() {
+  const roleEl  = document.getElementById('detail-role-select');
+  const levelEl = document.getElementById('detail-level-select');
+  if (!roleEl || !levelEl) return;
+  const role = roleEl.value;
+  const levels = role === 'Referee' ? REFEREE_LEVELS
+               : role === 'Assistant Referee' ? AR_LEVELS : [];
+  levelEl.innerHTML = '<option value="">Level…</option>'
+    + levels.map(l => `<option value="${l}">${l}</option>`).join('');
+  levelEl.disabled = !levels.length;
+  saveCoachLevel(); // persist the role immediately
+}
+
+async function saveCoachLevel() {
+  const refId = COACH_STATE.selectedReferee;
+  if (!refId) return;
+  const role  = document.getElementById('detail-role-select')?.value  || '';
+  const level = document.getElementById('detail-level-select')?.value || '';
+  const msg   = document.getElementById('detail-level-msg');
+  if (msg) msg.textContent = 'Saving…';
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/set-level`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
+      body: JSON.stringify({ refereeId: refId, role, level })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Save failed');
+    // Update local state so the grouping refreshes without a refetch
+    const ref = COACH_STATE.referees.find(r => r.id === refId);
+    if (ref) {
+      ref.profile = Object.assign({}, ref.profile || {}, { role: role || null, level: level || null });
+    }
+    if (msg) msg.textContent = '✓ Saved';
+    renderCoachDashboard();   // re-group the squad
+    setTimeout(() => { if (msg) msg.textContent = ''; }, 2000);
+  } catch(e) {
+    if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message; }
+  }
 }
 
 // ── Per-referee month helper ───────────────────────────────────────────────
