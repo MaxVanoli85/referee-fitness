@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v65</title>
+<title>Referee Fitness v66</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v66</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v66</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -464,7 +464,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v65</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v66</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -2015,7 +2015,7 @@ async function syncAll() {
   try {
     await fetch(`${BACKEND_URL}/coach/sync`,{method:'POST',headers:{'X-Coach-Pin':COACH_STATE.pin}});
     await new Promise(r=>setTimeout(r,3000)); // give server time to sync
-    await loadCoachDashboard();
+    await loadCoachDashboard(true); // force — data just changed
   } catch(e) { showError(e.message); }
 }
 
@@ -2039,7 +2039,7 @@ async function confirmAddReferee() {
     const data = await res.json();
     if(!res.ok) throw new Error(data.error||'Failed to add referee');
     closeAddModal();
-    await loadCoachDashboard();
+    await loadCoachDashboard(true); // force — new referee added
   } catch(e) { document.getElementById('add-error').textContent=e.message; }
 }
 
@@ -2053,7 +2053,7 @@ async function removeReferee(id) {
       body:JSON.stringify({id})
     });
     if(COACH_STATE.selectedReferee===id) closeDetail();
-    await loadCoachDashboard();
+    await loadCoachDashboard(true); // force — referee removed
   } catch(e) { alert('Could not remove referee: '+e.message); }
 }
 
