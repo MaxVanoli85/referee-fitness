@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v70</title>
+<title>Referee Fitness v71</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v70</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v71</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v70</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v71</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -378,6 +378,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       <div class="coach-controls" id="coach-month-controls" style="margin-bottom:0;"></div>
     </div>
 
+    <div id="coach-strava-warning" style="margin-bottom:0.75rem;"></div>
     <div class="referee-grid" id="referee-grid"></div>
 
     <div id="detail-section" style="display:none">
@@ -408,6 +409,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
                 <option value="">Level…</option>
               </select>
               <span id="detail-level-msg" style="font-size:10px;color:var(--green)"></span>
+            </div>
+            <!-- Strava link status + recovery -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+              <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0">Strava</span>
+              <span id="detail-strava-status" style="font-size:11px;color:var(--faint)">—</span>
+              <button id="detail-reset-strava" onclick="resetStravaLink()"
+                style="padding:2px 8px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:none;color:var(--muted);cursor:pointer;font-size:10px;font-family:inherit;">
+                ⟲ Reset link
+              </button>
             </div>
             <!-- Season selector -->
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
@@ -479,7 +489,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v70</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v71</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1713,6 +1723,26 @@ function renderCoachDashboard() {
   console.log(`[coach] ${total} referees received:`,
     COACH_STATE.referees.map(r => r.name).sort().join(', '));
 
+  // Detect two referees sharing one Strava account (name-collision damage)
+  const byStrava = {};
+  COACH_STATE.referees.forEach(r => {
+    if (!r.strava_id) return;
+    const k = String(r.strava_id);
+    (byStrava[k] = byStrava[k] || []).push(r.name);
+  });
+  const clashes = Object.entries(byStrava).filter(([, names]) => names.length > 1);
+  const warnEl = document.getElementById('coach-strava-warning');
+  if (warnEl) {
+    warnEl.innerHTML = clashes.length
+      ? clashes.map(([sid, names]) =>
+          `<div style="padding:7px 10px;background:var(--red)18;border-left:3px solid var(--red);border-radius:var(--radius-sm);margin-bottom:6px;font-size:12px;color:var(--red)">
+             ⚠ Strava account ${sid} is linked to ${names.length} referees: <strong>${names.join(', ')}</strong>.
+             Open each and use “⟲ Reset link”, then reconnect via their personal invite link.
+           </div>`).join('')
+      : '';
+    if (clashes.length) console.warn('[coach] duplicate Strava IDs:', clashes);
+  }
+
   const allActs        = COACH_STATE.referees.flatMap(r=>r.activities||[]);
   const feedbackMonths = COACH_STATE.referees.flatMap(r=>Object.keys(r.feedback||{}));
 
@@ -1927,6 +1957,7 @@ function renderDetail() {
   const s = computeStats(acts, ref.activities||[], getACRefDate(month));
   document.getElementById('detail-name').textContent = ref.name;
   populateCoachLevelSelects(ref);
+  renderStravaStatus(ref);
 
   // Update "Tout valider" button with the count of pending drafts for this month
   const vaBtn = document.getElementById('validate-all-btn');
@@ -2940,6 +2971,48 @@ async function saveCoachLevel() {
   } catch(e) {
     if (msg) { msg.style.color = 'var(--red)'; msg.textContent = e.message; }
   }
+}
+
+// ── Strava link status & recovery ──────────────────────────────────────────
+function renderStravaStatus(ref) {
+  const el = document.getElementById('detail-strava-status');
+  if (!el) return;
+  if (ref.connected && ref.strava_id) {
+    // Warn if another referee shares this Strava ID (name-collision damage)
+    const dupes = COACH_STATE.referees.filter(r =>
+      r.strava_id && String(r.strava_id) === String(ref.strava_id) && r.id !== ref.id);
+    el.innerHTML = `Connected · ID ${ref.strava_id}`
+      + (dupes.length ? ` <span style="color:var(--red)">⚠ also on: ${dupes.map(d=>d.name).join(', ')}</span>` : '');
+    el.style.color = dupes.length ? 'var(--red)' : 'var(--green)';
+  } else {
+    el.textContent = 'Not connected';
+    el.style.color = 'var(--faint)';
+  }
+}
+
+async function resetStravaLink() {
+  const refId = COACH_STATE.selectedReferee;
+  if (!refId) return;
+  const ref = COACH_STATE.referees.find(r => r.id === refId);
+  if (!ref) return;
+  const clearActs = confirm(
+    `Reset the Strava link for ${ref.name}?\n\n` +
+    `OK       = also delete their activities (use if the data belongs to someone else)\n` +
+    `Cancel   = keep activities, only unlink Strava\n\n` +
+    `They can reconnect afterwards using their personal invite link.`
+  );
+  if (!confirm(`Confirm: unlink Strava for ${ref.name}${clearActs ? ' AND delete their activities' : ''}?`)) return;
+  try {
+    const res = await fetch(`${BACKEND_URL}/coach/reset-strava`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
+      body: JSON.stringify({ refereeId: refId, clearActivities: clearActs })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Reset failed');
+    await loadCoachDashboard(true);
+    alert(`Strava link reset for ${ref.name}. Send them their invite link to reconnect.`);
+  } catch(e) { alert('Error: ' + e.message); }
 }
 
 // ── Per-referee month helper ───────────────────────────────────────────────
