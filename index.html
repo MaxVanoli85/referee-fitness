@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v77</title>
+<title>Referee Fitness v78</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -94,7 +94,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .referee-grid.dense .ref-card-months,
 .referee-grid.dense .ref-card-catbar,
 .referee-grid.dense .ref-card-bits{display:none;}
-.referee-grid.dense .ref-stats{margin-top:6px;}
 .ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.12s,box-shadow 0.15s;position:relative;}
 .ref-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.18);}
 .ref-card.attention{border-left:3px solid var(--red);}
@@ -107,9 +106,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .ref-status{font-size:11px;margin-top:2px;}
 .status-connected{color:var(--green);}
 .status-pending{color:var(--faint);}
-.ref-stats{display:flex;gap:12px;}
+.ref-stats{display:flex;gap:12px;flex-wrap:wrap;}
 .ref-stat{font-size:11px;color:var(--muted);}
 .ref-stat span{font-family:'DM Mono',monospace;color:var(--text);font-size:12px;}
+.ref-stat .feeling-emoji{font-size:18px;}
+/* Compact cards are ~150px wide — shrink the stat gap and the feeling emoji so
+   all four stats fit on two tidy rows instead of overflowing the card edge. */
+.referee-grid.dense .ref-stats{margin-top:6px;gap:8px 10px;}
+.referee-grid.dense .ref-stat{font-size:10px;}
+.referee-grid.dense .ref-stat span{font-size:11px;}
+.referee-grid.dense .ref-stat .feeling-emoji{font-size:14px;}
 .ref-remove{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--faint);cursor:pointer;font-size:14px;line-height:1;padding:2px 5px;border-radius:4px;}
 .ref-remove:hover{color:var(--red);background:var(--red-dim);}
 .add-ref-card{background:none;border:1px dashed var(--border2);border-radius:var(--radius);padding:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--muted);font-size:13px;font-family:inherit;transition:all 0.15s;}
@@ -276,7 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v77</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -365,7 +371,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v77</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -524,7 +530,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v77</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1996,7 +2002,7 @@ function renderRefereeGrid() {
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
           <div class="ref-stat">Volume<br><span>${Math.floor(s.totalMins/60)}h${s.totalMins%60}m</span></div>
           <div class="ref-stat">A:C ${s.usingTrimp?'<span style="color:var(--green);font-size:9px">●</span>':'<span style="color:var(--faint);font-size:9px">○</span>'}<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
-          <div class="ref-stat">Feeling<br><span style="font-size:18px">${feelingIcon}</span></div>
+          <div class="ref-stat">Feeling<br><span class="feeling-emoji">${feelingIcon}</span></div>
         </div>
         ${s.totalSessions>0 ? `<div class="ref-card-catbar" style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
           ${Object.values(s.catBreakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}"></div>`).join('')}
