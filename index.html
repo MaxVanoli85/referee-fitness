@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v73</title>
+<title>Referee Fitness v74</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -263,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v73</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v73</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -489,7 +489,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v73</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1456,7 +1456,7 @@ function renderFeed(containerId, acts) {
         const refIdForOverride = COACH_STATE.selectedReferee || '';
         const catPills = isCoachDetail ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;">
           ${Object.entries(TRAIN_CATS).filter(([k])=>k!=='other').map(([k,cat])=>`
-            <button onclick="event.stopPropagation();coachOverrideCategory('${refIdForOverride}','${a.id}','${k}')"
+            <button data-cat-btn onclick="event.stopPropagation();coachOverrideCategory('${refIdForOverride}','${a.id}','${k}')"
               style="padding:1px 6px;border-radius:8px;border:1px solid ${c.key===k?cat.color+'88':'var(--border)'};background:${c.key===k?cat.color+'22':'none'};color:${c.key===k?cat.color:'var(--faint)'};cursor:pointer;font-size:10px;font-family:inherit;">
               ${cat.icon} ${cat.short}</button>`).join('')}
         </div>` : '';
@@ -1488,10 +1488,14 @@ function renderFeed(containerId, acts) {
       }).join('')
     : '<div class="empty-state">No activities this month.</div>';
 
-  // Attach click listener via event delegation (works even after innerHTML replacement)
+  // Attach click listener via event delegation (works even after innerHTML replacement).
+  // Guard so re-renders don't stack multiple listeners on the same container.
   const container = document.getElementById(containerId);
-  if (container) {
+  if (container && !container._actClickBound) {
+    container._actClickBound = true;
     container.addEventListener('click', function handler(e) {
+      // Ignore clicks on the category override buttons — they handle themselves
+      if (e.target.closest('[data-cat-btn]')) return;
       const row = e.target.closest('[data-act-id]');
       if (row) openActivityPanel(row.dataset.actId);
     });
@@ -3033,16 +3037,18 @@ function setRefMonth(refId, key, event) {
 // ── Coach category override ────────────────────────────────────────────────
 async function coachOverrideCategory(refId, actId, catKey) {
   const ref = COACH_STATE.referees.find(r => r.id === refId);
-  if (!ref) return;
+  if (!ref) { console.warn('[coach-cat] referee not found:', refId); return; }
   // Store in ref.rpe as _cat override (same field, compatible)
   if (!ref.rpe) ref.rpe = {};
   ref.rpe[String(actId)] = '_cat:' + catKey;
   // Also mark in activities array
   const act = (ref.activities||[]).find(a => String(a.id) === String(actId));
   if (act) act._cat = catKey;
+  // Re-render immediately so the pill updates even before the network returns
+  renderDetail();
   // Push to backend
   try {
-    await fetch(`${BACKEND_URL}/referee/rpe`, {
+    const res = await fetch(`${BACKEND_URL}/referee/rpe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Coach-Pin': COACH_STATE.pin },
       body: JSON.stringify({
@@ -3052,9 +3058,15 @@ async function coachOverrideCategory(refId, actId, catKey) {
         rpe: '_cat:' + catKey
       })
     });
-  } catch(e) { console.log('Coach override error:', e.message); }
-  // Re-render full detail panel to refresh stats, categories, everything
-  renderDetail();
+    if (!res.ok) {
+      const d = await res.json().catch(()=>({}));
+      console.warn('[coach-cat] save failed:', res.status, d.error);
+      alert('Could not save category: ' + (d.error || res.status));
+    }
+  } catch(e) {
+    console.warn('[coach-cat] network error:', e.message);
+    alert('Could not save category: ' + e.message);
+  }
 }
 
 // ── A:C reference date helper ──────────────────────────────────────────────
