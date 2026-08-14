@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v74</title>
+<title>Referee Fitness v75</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -85,7 +85,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* ── COACH: REFEREE GRID ── */
 .referee-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:1.5rem;}
-.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s;position:relative;}
+.ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.12s,box-shadow 0.15s;position:relative;}
+.ref-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.18);}
+.ref-card.attention{border-left:3px solid var(--red);}
+.ref-card.watch{border-left:3px solid var(--amber);}
 .ref-card:hover{border-color:var(--border2);background:var(--bg3);}
 .ref-card.selected{border-color:var(--orange-border);background:var(--orange-dim);}
 .ref-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
@@ -263,7 +266,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -352,7 +355,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -379,6 +382,19 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     </div>
 
     <div id="coach-strava-warning" style="margin-bottom:0.75rem;"></div>
+
+    <!-- Squad filter + search -->
+    <div id="squad-toolbar" style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap;">
+      <div style="position:relative;flex:1;min-width:180px;max-width:280px;">
+        <input id="squad-search" type="text" placeholder="Search referee…" oninput="applySquadFilter()"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:7px 12px 7px 30px;border-radius:var(--radius-sm);">
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:13px;pointer-events:none">⌕</span>
+      </div>
+      <div id="squad-filter-chips" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+      <div style="flex:1"></div>
+      <span id="squad-count" style="font-size:11px;color:var(--faint);white-space:nowrap"></span>
+    </div>
+
     <div class="referee-grid" id="referee-grid"></div>
 
     <div id="detail-section" style="display:none">
@@ -489,7 +505,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v74</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1772,12 +1788,43 @@ function renderCoachDashboard() {
   renderRefereeGrid();
 }
 
+const COACH_FILTER = { search: '', group: 'all', status: 'all' };
+
+function applySquadFilter() {
+  const el = document.getElementById('squad-search');
+  COACH_FILTER.search = el ? el.value.trim().toLowerCase() : '';
+  renderRefereeGrid();
+}
+function setSquadFilterGroup(g) { COACH_FILTER.group = g; renderRefereeGrid(); }
+function setSquadFilterStatus(s) {
+  COACH_FILTER.status = COACH_FILTER.status === s ? 'all' : s;
+  renderRefereeGrid();
+}
+
+function renderSquadFilterChips(groupsPresent) {
+  const wrap = document.getElementById('squad-filter-chips');
+  if (!wrap) return;
+  const chip = (label, active, onclick, accent) =>
+    `<button onclick="${onclick}" style="padding:4px 11px;border-radius:20px;border:1px solid ${active?(accent||'var(--orange-border)'):'var(--border)'};background:${active?(accent?accent+'22':'var(--orange-dim)'):'none'};color:${active?(accent||'var(--orange)'):'var(--faint)'};cursor:pointer;font-size:11px;font-family:inherit;white-space:nowrap;">${label}</button>`;
+  // Level groups present in the squad, in canonical order
+  const ordered = Object.keys(LEVEL_ORDER).sort((a,b)=>LEVEL_ORDER[a]-LEVEL_ORDER[b])
+    .filter(g => groupsPresent.includes(g));
+  if (groupsPresent.includes('No level set')) ordered.push('No level set');
+  let html = chip('All', COACH_FILTER.group==='all', "setSquadFilterGroup('all')");
+  html += ordered.map(g => chip(g==='No level set'?'No level':g, COACH_FILTER.group===g, `setSquadFilterGroup('${g.replace(/'/g,"\\'")}')`)).join('');
+  // Status filters (separated visually)
+  html += `<span style="width:1px;background:var(--border);margin:0 3px;align-self:stretch"></span>`;
+  html += chip('● Connected', COACH_FILTER.status==='connected', "setSquadFilterStatus('connected')", 'var(--green)');
+  html += chip('○ Pending', COACH_FILTER.status==='pending', "setSquadFilterStatus('pending')", 'var(--amber)');
+  wrap.innerHTML = html;
+}
+
 function renderRefereeGrid() {
   const month = COACH_STATE.selectedMonth;
   const AVATAR_COLORS = ['#fc4c02','#4a9eff','#22c97a','#7f77dd','#f5a623','#f0544f','#1D9E75','#D4537E'];
 
   // Sort referees by role/level order, then name
-  const sorted = [...COACH_STATE.referees].sort((a, b) => {
+  const sortedAll = [...COACH_STATE.referees].sort((a, b) => {
     const ka = getRoleLabel(a.profile||{});
     const kb = getRoleLabel(b.profile||{});
     const oa = LEVEL_ORDER[ka] !== undefined ? LEVEL_ORDER[ka] : 99;
@@ -1785,6 +1832,28 @@ function renderRefereeGrid() {
     if (oa !== ob) return oa - ob;
     return a.name.localeCompare(b.name);
   });
+
+  // Which level groups exist (for the filter chips) — computed before filtering
+  const groupsPresent = [...new Set(sortedAll.map(r => getRoleLabel(r.profile||{}) || 'No level set'))];
+  renderSquadFilterChips(groupsPresent);
+
+  // Apply search + status + group filters
+  const sorted = sortedAll.filter(r => {
+    if (COACH_FILTER.search && !r.name.toLowerCase().includes(COACH_FILTER.search)) return false;
+    if (COACH_FILTER.status === 'connected' && !r.connected) return false;
+    if (COACH_FILTER.status === 'pending' && r.connected) return false;
+    if (COACH_FILTER.group !== 'all') {
+      const lbl = getRoleLabel(r.profile||{}) || 'No level set';
+      if (lbl !== COACH_FILTER.group) return false;
+    }
+    return true;
+  });
+
+  const countEl = document.getElementById('squad-count');
+  if (countEl) {
+    const total = sortedAll.length, shown = sorted.length;
+    countEl.textContent = shown === total ? `${total} referees` : `${shown} of ${total} shown`;
+  }
 
   // Group by role/level label
   const groups = {};
@@ -1796,6 +1865,14 @@ function renderRefereeGrid() {
   });
 
   const grid = document.getElementById('referee-grid');
+  const isFiltered = COACH_FILTER.search || COACH_FILTER.group !== 'all' || COACH_FILTER.status !== 'all';
+  if (!sorted.length) {
+    grid.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--faint);font-size:13px;">
+      No referees match this filter.
+      ${isFiltered?`<br><button onclick="clearSquadFilter()" style="margin-top:10px;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-family:inherit">Clear filters</button>`:''}
+    </div>`;
+    return;
+  }
   // Newly added referees have no profile yet and would otherwise sit at the very
   // bottom under "No level set" — easy to miss. Surface them first, since they
   // need a level assigned.
@@ -1818,7 +1895,9 @@ function renderRefereeGrid() {
       const feelingVal = (r.monthlyFeelings||{})[month] || 0;
       const feelingIcon = feelingVal ? (FEELING_OPTIONS.find(f=>f.value===feelingVal)||{icon:'—'}).icon : '—';
 
-      return `<div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}" onclick="selectReferee('${r.id}')">
+      const attnClass = (s.totalSessions>0 && s.ratio>1.5) ? ' attention'
+                      : (s.totalSessions>0 && s.ratio>1.3) ? ' watch' : '';
+      return `<div class="ref-card ${COACH_STATE.selectedReferee===r.id?'selected':''}${attnClass}" onclick="selectReferee('${r.id}')">
         <button class="ref-remove" onclick="event.stopPropagation();removeReferee('${r.id}')" title="Remove">✕</button>
         <div class="ref-card-top">
           ${p.picture
@@ -1864,7 +1943,13 @@ function renderRefereeGrid() {
       </div>
       <div class="referee-grid" style="margin-bottom:0">${cards}</div>
     </div>`;
-  }).join('') + `<button class="add-ref-card" onclick="openAddModal()" style="margin-top:8px">+ Add referee</button>`;
+  }).join('') + (isFiltered ? '' : `<button class="add-ref-card" onclick="openAddModal()" style="margin-top:8px">+ Add referee</button>`);
+}
+
+function clearSquadFilter() {
+  COACH_FILTER.search = ''; COACH_FILTER.group = 'all'; COACH_FILTER.status = 'all';
+  const s = document.getElementById('squad-search'); if (s) s.value = '';
+  renderRefereeGrid();
 }
 
 function selectReferee(id) {
