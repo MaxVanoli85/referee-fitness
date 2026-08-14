@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v75</title>
+<title>Referee Fitness v76</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -85,6 +85,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 
 /* ── COACH: REFEREE GRID ── */
 .referee-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:1.5rem;}
+.referee-grid.dense{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.referee-grid.dense .ref-card{padding:0.6rem;}
+.referee-grid.dense .ref-card-months,
+.referee-grid.dense .ref-card-catbar,
+.referee-grid.dense .ref-card-bits{display:none;}
+.referee-grid.dense .ref-stats{margin-top:6px;}
 .ref-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.12s,box-shadow 0.15s;position:relative;}
 .ref-card:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.18);}
 .ref-card.attention{border-left:3px solid var(--red);}
@@ -266,7 +272,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v76</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -355,7 +361,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v76</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -392,6 +398,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
       </div>
       <div id="squad-filter-chips" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
       <div style="flex:1"></div>
+      <select id="squad-sort" onchange="setSquadSort(this.value)" title="Sort"
+        style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:12px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;">
+        <option value="level">Sort: Level</option>
+        <option value="name">Sort: Name</option>
+        <option value="ac">Sort: A:C (high→low)</option>
+        <option value="sync">Sort: Last sync</option>
+      </select>
+      <button id="squad-density" onclick="toggleDensity()" title="Toggle compact view"
+        style="background:var(--bg3);border:1px solid var(--border2);color:var(--muted);font-family:inherit;font-size:12px;padding:6px 11px;border-radius:var(--radius-sm);cursor:pointer;">▤ Compact</button>
       <span id="squad-count" style="font-size:11px;color:var(--faint);white-space:nowrap"></span>
     </div>
 
@@ -505,7 +520,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v75</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v76</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1788,7 +1803,7 @@ function renderCoachDashboard() {
   renderRefereeGrid();
 }
 
-const COACH_FILTER = { search: '', group: 'all', status: 'all' };
+const COACH_FILTER = { search: '', group: 'all', status: 'all', attention: false, sort: 'level', dense: false };
 
 function applySquadFilter() {
   const el = document.getElementById('squad-search');
@@ -1799,6 +1814,29 @@ function setSquadFilterGroup(g) { COACH_FILTER.group = g; renderRefereeGrid(); }
 function setSquadFilterStatus(s) {
   COACH_FILTER.status = COACH_FILTER.status === s ? 'all' : s;
   renderRefereeGrid();
+}
+function toggleAttentionFilter() { COACH_FILTER.attention = !COACH_FILTER.attention; renderRefereeGrid(); }
+function setSquadSort(v) { COACH_FILTER.sort = v; renderRefereeGrid(); }
+function toggleDensity() {
+  COACH_FILTER.dense = !COACH_FILTER.dense;
+  const grid = document.getElementById('referee-grid');
+  renderRefereeGrid();
+}
+
+// Does a referee currently need the coach's attention?
+// (high/elevated A:C, stale sync >10 days, or Z5 target consistently missed)
+function refNeedsAttention(r) {
+  const refMonth = getRefMonth(r.id);
+  const acts = refMonth ? actsForMonth(r.activities||[], refMonth) : [];
+  const s = computeStats(acts, r.activities||[], getACRefDate(refMonth));
+  if (s.totalSessions > 0 && s.ratio > 1.3) return true;   // vigilance or risk
+  if (r.connected && r.lastSync) {
+    const days = (Date.now() - new Date(r.lastSync)) / 86400000;
+    if (days > 10) return true;                             // stale data
+  }
+  const z5 = computeWeeklyZ5(r.activities||[], null);
+  if (z5 && z5.totalWeeks >= 3 && z5.weeksOnTarget === 0) return true; // never hits Z5
+  return false;
 }
 
 function renderSquadFilterChips(groupsPresent) {
@@ -1816,6 +1854,10 @@ function renderSquadFilterChips(groupsPresent) {
   html += `<span style="width:1px;background:var(--border);margin:0 3px;align-self:stretch"></span>`;
   html += chip('● Connected', COACH_FILTER.status==='connected', "setSquadFilterStatus('connected')", 'var(--green)');
   html += chip('○ Pending', COACH_FILTER.status==='pending', "setSquadFilterStatus('pending')", 'var(--amber)');
+  // Needs-attention quick filter, with live count
+  const attnCount = COACH_STATE.referees.filter(refNeedsAttention).length;
+  html += `<span style="width:1px;background:var(--border);margin:0 3px;align-self:stretch"></span>`;
+  html += chip(`⚠ Needs attention${attnCount?` (${attnCount})`:''}`, COACH_FILTER.attention, "toggleAttentionFilter()", 'var(--red)');
   wrap.innerHTML = html;
 }
 
@@ -1837,7 +1879,7 @@ function renderRefereeGrid() {
   const groupsPresent = [...new Set(sortedAll.map(r => getRoleLabel(r.profile||{}) || 'No level set'))];
   renderSquadFilterChips(groupsPresent);
 
-  // Apply search + status + group filters
+  // Apply search + status + group + attention filters
   const sorted = sortedAll.filter(r => {
     if (COACH_FILTER.search && !r.name.toLowerCase().includes(COACH_FILTER.search)) return false;
     if (COACH_FILTER.status === 'connected' && !r.connected) return false;
@@ -1846,8 +1888,27 @@ function renderRefereeGrid() {
       const lbl = getRoleLabel(r.profile||{}) || 'No level set';
       if (lbl !== COACH_FILTER.group) return false;
     }
+    if (COACH_FILTER.attention && !refNeedsAttention(r)) return false;
     return true;
   });
+
+  // Alternate sorts (level is the default from sortedAll)
+  if (COACH_FILTER.sort === 'name') {
+    sorted.sort((a,b) => a.name.localeCompare(b.name));
+  } else if (COACH_FILTER.sort === 'ac') {
+    const acOf = r => {
+      const rm = getRefMonth(r.id);
+      const st = computeStats(rm?actsForMonth(r.activities||[],rm):[], r.activities||[], getACRefDate(rm));
+      return st.totalSessions>0 ? st.ratio : -1;
+    };
+    sorted.sort((a,b) => acOf(b) - acOf(a));
+  } else if (COACH_FILTER.sort === 'sync') {
+    const t = r => r.lastSync ? new Date(r.lastSync).getTime() : 0;
+    sorted.sort((a,b) => t(b) - t(a));
+  }
+  // When sorting by anything other than level, grouping by level no longer makes
+  // sense — flatten into a single group so the sort order is visible.
+  const flatten = COACH_FILTER.sort !== 'level';
 
   const countEl = document.getElementById('squad-count');
   if (countEl) {
@@ -1855,17 +1916,20 @@ function renderRefereeGrid() {
     countEl.textContent = shown === total ? `${total} referees` : `${shown} of ${total} shown`;
   }
 
-  // Group by role/level label
+  // Group by role/level label (or a single flat group when sorting by A:C/name/sync)
   const groups = {};
   const groupOrder = [];
-  sorted.forEach((r, origIdx) => {
-    const lbl = getRoleLabel(r.profile||{}) || 'No level set';
+  sorted.forEach((r) => {
+    const lbl = flatten ? 'Squad' : (getRoleLabel(r.profile||{}) || 'No level set');
     if (!groups[lbl]) { groups[lbl] = []; groupOrder.push(lbl); }
     groups[lbl].push({ r, origIdx: COACH_STATE.referees.indexOf(r) });
   });
 
   const grid = document.getElementById('referee-grid');
-  const isFiltered = COACH_FILTER.search || COACH_FILTER.group !== 'all' || COACH_FILTER.status !== 'all';
+  grid.classList.toggle('dense', COACH_FILTER.dense);
+  const densityBtn = document.getElementById('squad-density');
+  if (densityBtn) densityBtn.innerHTML = COACH_FILTER.dense ? '▦ Comfortable' : '▤ Compact';
+  const isFiltered = COACH_FILTER.search || COACH_FILTER.group !== 'all' || COACH_FILTER.status !== 'all' || COACH_FILTER.attention;
   if (!sorted.length) {
     grid.innerHTML = `<div style="padding:2rem;text-align:center;color:var(--faint);font-size:13px;">
       No referees match this filter.
@@ -1906,7 +1970,7 @@ function renderRefereeGrid() {
           <div style="min-width:0;flex:1">
             <div class="ref-name">${r.name}</div>
             <div class="ref-status ${r.connected?'status-connected':'status-pending'}">${r.connected?'● Connected':'○ Not connected'}</div>
-            ${(()=>{const bits=[p.age?p.age+' yrs':null,p.height?p.height+' cm':null,p.weight?p.weight+' kg':null,getRoleLabel(p)||null].filter(Boolean);return bits.length?`<div style="font-size:10px;color:var(--faint);margin-top:2px">${bits.join(' · ')}</div>`:''})()}
+            ${(()=>{const bits=[p.age?p.age+' yrs':null,p.height?p.height+' cm':null,p.weight?p.weight+' kg':null,getRoleLabel(p)||null].filter(Boolean);return bits.length?`<div class="ref-card-bits" style="font-size:10px;color:var(--faint);margin-top:2px">${bits.join(' · ')}</div>`:''})()}
           </div>
         </div>
         ${(()=>{
@@ -1915,14 +1979,14 @@ function renderRefereeGrid() {
           const dataMths   = new Set((r.activities||[]).filter(a=>a&&a.start_date).map(a=>getMonthKey(actDate(a))).filter(k=>k!=='unknown'));
           const availMths  = seasonMths.filter(m => dataMths.has(m));
           const curM       = getRefMonth(r.id) || availMths[0] || '';
-          return `<div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin:8px 0 4px">${getSeasonLabel(cardSeason)}</div>
+          return `<div class="ref-card-months"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin:8px 0 4px">${getSeasonLabel(cardSeason)}</div>
           ${availMths.length
             ? `<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;" onclick="event.stopPropagation()">
               ${availMths.map(k=>`<button onclick="setRefMonth('${r.id}','${k}',event)"
                 style="padding:2px 7px;border-radius:var(--radius-sm);border:1px solid ${k===curM?'var(--orange-border)':'var(--border)'};background:${k===curM?'var(--orange-dim)':'none'};color:${k===curM?'var(--orange)':'var(--faint)'};cursor:pointer;font-size:10px;font-family:inherit;"
               >${getMonthLabel(k)}</button>`).join('')}
             </div>`
-            : `<div style="font-size:11px;color:var(--faint);margin-bottom:8px">No data this season</div>`}`;
+            : `<div style="font-size:11px;color:var(--faint);margin-bottom:8px">No data this season</div>`}</div>`;
         })()}
                 <div class="ref-stats">
           <div class="ref-stat">Sessions<br><span>${s.totalSessions}</span></div>
@@ -1930,7 +1994,7 @@ function renderRefereeGrid() {
           <div class="ref-stat">A:C ${s.usingTrimp?'<span style="color:var(--green);font-size:9px">●</span>':'<span style="color:var(--faint);font-size:9px">○</span>'}<br><span style="color:${rc}">${s.ratio||'—'}</span></div>
           <div class="ref-stat">Feeling<br><span style="font-size:18px">${feelingIcon}</span></div>
         </div>
-        ${s.totalSessions>0 ? `<div style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
+        ${s.totalSessions>0 ? `<div class="ref-card-catbar" style="display:flex;height:4px;border-radius:2px;overflow:hidden;margin-top:8px;gap:1px">
           ${Object.values(s.catBreakdown).filter(c=>c.count>0).map(c=>`<div style="flex:${c.count};background:${c.color};min-width:2px" title="${c.label}: ${c.count}"></div>`).join('')}
         </div>` : ''}
         ${!r.connected?`<button onclick="event.stopPropagation();showInviteForReferee('${r.id}','${r.name}')" style="margin-top:8px;width:100%;background:none;border:1px solid var(--border2);color:var(--muted);padding:5px;border-radius:var(--radius-sm);cursor:pointer;font-size:11px;font-family:inherit">Invite →</button>`:''}
@@ -1947,7 +2011,7 @@ function renderRefereeGrid() {
 }
 
 function clearSquadFilter() {
-  COACH_FILTER.search = ''; COACH_FILTER.group = 'all'; COACH_FILTER.status = 'all';
+  COACH_FILTER.search = ''; COACH_FILTER.group = 'all'; COACH_FILTER.status = 'all'; COACH_FILTER.attention = false;
   const s = document.getElementById('squad-search'); if (s) s.value = '';
   renderRefereeGrid();
 }
