@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v78</title>
+<title>Referee Fitness v79</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -282,7 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -371,7 +371,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -530,7 +530,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v78</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -1232,16 +1232,19 @@ function estimateSprints(act) {
   return null;
 }
 
+// Aggregate zone distribution across activities (monthly overview).
+// Prefers exact per-second hr_zones from the stream; falls back to a per-activity
+// estimate for activities without stream data. Returns 5 percentages.
 function approxZones(acts, profile) {
-  const thr = getZoneThresholds(profile || REF_STATE.profile || null);
-  let z=[0,0,0,0,0];
-  acts.forEach(a=>{
-    if(!a.average_heartrate) return;
-    const p=a.moving_time||a.elapsed_time||0;
-    z[hrToZone(a.average_heartrate, thr)]+=p;
+  let z = [0, 0, 0, 0, 0]; // minutes per zone, summed across activities
+  acts.forEach(a => {
+    const zoneMins = getActivityZones(a, profile);  // exact if hr_zones present, else estimate
+    if (zoneMins && zoneMins.length === 5) {
+      for (let i = 0; i < 5; i++) z[i] += zoneMins[i] || 0;
+    }
   });
-  const t=z.reduce((a,b)=>a+b,0)||1;
-  return z.map(v=>Math.round(v/t*100));
+  const t = z.reduce((a, b) => a + b, 0) || 1;
+  return z.map(v => Math.round(v / t * 100));
 }
 
 // Use exact HR stream zones if available, otherwise estimate
