@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referee Fitness v79</title>
+<title>Referee Fitness v80</title>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -282,7 +282,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ REFEREE DASHBOARD ════════════════════════════════════════════════ -->
 <div id="dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
+    <div class="topbar-brand">Referee Fitness <span style="font-size:9px;color:var(--faint);margin-left:4px">v80</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" id="ref-initials">--</div>
@@ -371,7 +371,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ COACH DASHBOARD ════════════════════════════════════════════ -->
 <div id="coach-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
+    <div class="topbar-brand">Referee Fitness — Coach <span style="font-size:9px;color:var(--faint);margin-left:4px">v80</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot coach-dot">CO</div>
@@ -530,7 +530,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 <!-- ═══ CAF DASHBOARD ══════════════════════════════════════════════ -->
 <div id="caf-dashboard" class="screen">
   <div class="topbar">
-    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v79</span></div>
+    <div class="topbar-brand">Referee Fitness — CAF <span style="font-size:9px;color:var(--faint);margin-left:4px">v80</span></div>
     <div class="topbar-right">
       <div class="topbar-pill">
         <div class="pill-dot" style="background:var(--blue-dim);border-color:rgba(74,158,255,0.4);color:var(--blue);font-size:9px">CAF</div>
@@ -656,38 +656,22 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <h3>Coach feedback — <span id="feedback-modal-name"></span></h3>
     <p id="feedback-modal-period" style="font-size:12px;color:var(--muted);margin-bottom:1rem;margin-top:-4px"></p>
 
-    <!-- Template sections -->
+    <!-- Editable report fields (free text — works with AI output and manual keywords alike) -->
     <div style="display:grid;gap:10px;margin-bottom:1rem;">
       <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Load assessment</div>
-        <select id="fb-load" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
-          <option value="">Select…</option>
-          <option value="Underloaded — increase training volume">Underloaded — increase training volume</option>
-          <option value="Well balanced — maintain current load">Well balanced — maintain current load</option>
-          <option value="Slightly elevated — monitor closely">Slightly elevated — monitor closely</option>
-          <option value="Overloaded — reduce intensity this week">Overloaded — reduce intensity this week</option>
-        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Charge / Load</div>
+        <textarea id="fb-load" rows="2" placeholder="Mots-clés ou phrase…"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);resize:vertical;"></textarea>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Fitness status</div>
-        <select id="fb-fitness" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
-          <option value="">Select…</option>
-          <option value="Excellent — peak condition">Excellent — peak condition</option>
-          <option value="Good — on track">Good — on track</option>
-          <option value="Satisfactory — room for improvement">Satisfactory — room for improvement</option>
-          <option value="Below expectations — action required">Below expectations — action required</option>
-        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Forme / Fitness</div>
+        <textarea id="fb-fitness" rows="2" placeholder="Mots-clés ou phrase…"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);resize:vertical;"></textarea>
       </div>
       <div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Recommendation</div>
-        <select id="fb-recommendation" style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);">
-          <option value="">Select…</option>
-          <option value="Continue current programme">Continue current programme</option>
-          <option value="Add one high intensity session per week">Add one high intensity session per week</option>
-          <option value="Focus on endurance base this month">Focus on endurance base this month</option>
-          <option value="Rest week recommended">Rest week recommended</option>
-          <option value="Individual meeting recommended">Individual meeting recommended</option>
-        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">Recommandation</div>
+        <textarea id="fb-recommendation" rows="2" placeholder="Mots-clés ou phrase…"
+          style="width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:inherit;font-size:13px;padding:9px 12px;border-radius:var(--radius-sm);resize:vertical;"></textarea>
       </div>
     </div>
     <div id="fb-save-msg" style="font-size:12px;color:var(--green);min-height:16px;margin-bottom:8px;"></div>
@@ -2611,9 +2595,9 @@ async function saveFeedback() {
     const ref = COACH_STATE.referees.find(r => r.id === _feedbackRefereeId);
     if (ref) {
       if (!ref.feedback) ref.feedback = {};
-      ref.feedback[_feedbackMonthKey] = { ...feedback, updatedAt: new Date().toISOString() };
+      ref.feedback[_feedbackMonthKey] = { ...feedback, draft: false, validated: true, updatedAt: new Date().toISOString() };
     }
-    document.getElementById('fb-save-msg').textContent = 'Feedback saved!';
+    document.getElementById('fb-save-msg').textContent = 'Rapport enregistré et validé !';
     setTimeout(() => { closeFeedbackModal(); renderDetail(); }, 800);
   } catch(e) {
     document.getElementById('fb-save-msg').textContent = 'Error: ' + e.message;
